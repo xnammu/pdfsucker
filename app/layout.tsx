@@ -7,7 +7,7 @@ const _geist = Geist({ subsets: ["latin"] });
 const _geistMono = Geist_Mono({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: 'PDF to JPG Converter | Print-Production Quality',
+  title: 'PDF Sucker | Suck My PDF',
   description: 'Professional-grade PDF to JPG conversion with Ghostscript rendering, CMYK preservation, ICC color management, and print-production quality output.',
   generator: 'v0.app',
   icons: {

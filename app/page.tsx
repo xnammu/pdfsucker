@@ -174,12 +174,12 @@ export default function PDFConverter() {
           const updatedPages = f.pages.map((p) =>
             p.pageNumber === pageNumber ? { ...p, ...updates } : p
           )
-          
+
           let updatedSettings = f.settings
           if ("selected" in updates && f.settings.exportScope !== "selected") {
             updatedSettings = { ...f.settings, exportScope: "selected" }
           }
-          
+
           return {
             ...f,
             pages: updatedPages,
@@ -213,8 +213,8 @@ export default function PDFConverter() {
 
   const handleStartConversion = useCallback(async (targetFileId?: string) => {
     isCancelledRef.current = false
-    let filesToProcess = targetFileId 
-      ? files.filter(f => f.id === targetFileId) 
+    let filesToProcess = targetFileId
+      ? files.filter(f => f.id === targetFileId)
       : files.filter(f => f.status !== "complete");
 
     // Fallback to all files if everything is already complete
@@ -226,7 +226,7 @@ export default function PDFConverter() {
     const shouldConvertPage = (file: PDFFile, pageNumber: number) => {
       const page = file.pages.find(p => p.pageNumber === pageNumber)
       if (page?.deleted) return false
-      
+
       const displayNum = getDisplayPageNumber(file, pageNumber)
       const fileSettings = file.settings
 
@@ -277,7 +277,7 @@ export default function PDFConverter() {
             ...f,
             status: "processing",
             progress: 0,
-            pages: f.pages.map((p) => 
+            pages: f.pages.map((p) =>
               shouldConvertPage(f, p.pageNumber)
                 ? { ...p, status: "processing" as const }
                 : p
@@ -319,7 +319,7 @@ export default function PDFConverter() {
       const blob = new Blob([workerCode], { type: "application/javascript" })
       const workerUrl = URL.createObjectURL(blob)
       worker = new Worker(workerUrl)
-      
+
       worker.onmessage = (e) => {
         const { id } = e.data
         const cb = callbacks.get(id)
@@ -342,7 +342,7 @@ export default function PDFConverter() {
       }
     } catch (e) {
       console.warn("Failed to initialize background worker clock, falling back to setTimeout:", e)
-      
+
       // Fallback to setTimeout shim if Web Workers are blocked or unsupported
       const timeoutIds = new Map<number, NodeJS.Timeout>()
       window.requestAnimationFrame = (callback: FrameRequestCallback) => {
@@ -374,7 +374,7 @@ export default function PDFConverter() {
             file.settings,
             (pageNumber, dataUrl, localPath) => {
               if (isCancelledRef.current) return
-              
+
               // Update individual page as it completes
               setFiles((prev) =>
                 prev.map((f) =>
@@ -457,7 +457,7 @@ export default function PDFConverter() {
       // Restore original native functions
       window.requestAnimationFrame = originalRequestAnimationFrame
       window.cancelAnimationFrame = originalCancelAnimationFrame
-      
+
       // Terminate worker and clean up URL
       if (worker) {
         worker.terminate()
@@ -481,7 +481,7 @@ export default function PDFConverter() {
   const handleStopConversion = useCallback(() => {
     isCancelledRef.current = true
     setJob(null)
-    
+
     // Stop all conversion processing status of files
     setFiles((prev) =>
       prev.map((f) =>
@@ -539,13 +539,13 @@ export default function PDFConverter() {
         // Convert to secure local Blob URL to ensure names and extensions are preserved correctly in all browsers
         const blob = dataUrlToBlob(page.outputUrl)
         const blobUrl = URL.createObjectURL(blob)
-        
+
         const displayNum = getDisplayPageNumber(file, pageNumber)
         const link = document.createElement("a")
         link.href = blobUrl
         link.download = defaultName
         link.click()
-        
+
         // Safe timeout to prevent browser race conditions revoking the URL before the download starts
         setTimeout(() => {
           URL.revokeObjectURL(blobUrl)
@@ -652,7 +652,7 @@ export default function PDFConverter() {
           const ext = mime === "image/png" ? "png" : mime === "image/webp" ? "webp" : "jpg"
           const base64Data = page.outputUrl.split(",")[1]
           if (!base64Data) continue
-          
+
           const displayNum = getDisplayPageNumber(file, page.pageNumber)
           targetZip.file(`page-${displayNum.toString().padStart(3, "0")}.${ext}`, base64Data, {
             base64: true,
@@ -703,15 +703,15 @@ export default function PDFConverter() {
       prev.map((f) =>
         f.id === fileId
           ? {
-              ...f,
-              status: "pending",
-              progress: 0,
-              pages: f.pages.map((p) => ({
-                ...p,
-                status: "pending" as const,
-                outputUrl: undefined,
-              })),
-            }
+            ...f,
+            status: "pending",
+            progress: 0,
+            pages: f.pages.map((p) => ({
+              ...p,
+              status: "pending" as const,
+              outputUrl: undefined,
+            })),
+          }
           : f
       )
     )
@@ -769,7 +769,7 @@ export default function PDFConverter() {
           </div>
           <div>
             <h1 className="text-lg font-semibold text-foreground">
-              PDF to JPG Converter
+              PDF Sucker
             </h1>
             <p className="text-xs text-muted-foreground">
               High-quality conversion • Configurable DPI • Batch processing
@@ -783,23 +783,23 @@ export default function PDFConverter() {
             const hasCompleted = files.some(f => f.status === "complete")
             const allCompleted = files.every(f => f.status === "complete")
             const targetFiles = (hasCompleted && remainingFiles.length > 0) ? remainingFiles : files
-            
+
             const anyDirty = targetFiles.some(f => !f.lastConvertedSignature || f.lastConvertedSignature !== getFileSignature(f, f.settings))
             const showConvertButton = !allCompleted || anyDirty
             if (!showConvertButton) return null
 
             const label = allCompleted
               ? (files.length === 1 ? "Update Current" : "Update All")
-              : files.length === 1 
-                ? "Start Conversion" 
-                : (hasCompleted && remainingFiles.length > 0) 
-                  ? "Convert Remaining" 
+              : files.length === 1
+                ? "Start Conversion"
+                : (hasCompleted && remainingFiles.length > 0)
+                  ? "Convert Remaining"
                   : "Convert All"
-            
+
             const totalTargetPages = targetFiles.reduce((acc, f) => {
               const activePagesCount = f.pages.filter(p => {
                 if (p.deleted) return false
-                
+
                 const displayNum = getDisplayPageNumber(f, p.pageNumber)
                 const fileSettings = f.settings
 
@@ -897,7 +897,7 @@ export default function PDFConverter() {
                   )}
                 </>
               ) : null}
-              
+
               <Button
                 variant="ghost"
                 size="icon"
