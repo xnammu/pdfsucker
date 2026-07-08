@@ -423,6 +423,7 @@ export async function convertAllPages(
 
   try {
     const generatedPaths = await invoke<string[]>('convert_pdf_native', {
+      id: pdfFile.id,
       path: pdfFile.path,
       dpi: settings.dpi || 300,
       format: settings.exportFormat === 'png' ? 'png' : 'jpeg',

@@ -45,12 +45,13 @@ fn find_ghostscript() -> std::path::PathBuf {
 
 #[tauri::command]
 async fn convert_pdf_native(
+    id: String,
     path: String,
     dpi: u32,
     format: String,
     pages: Vec<u32>,
 ) -> Result<Vec<String>, String> {
-    let output_dir = std::env::temp_dir().join("pdf_converter_pro");
+    let output_dir = std::env::temp_dir().join(format!("pdf_converter_pro_{}", id));
     let _ = fs::create_dir_all(&output_dir);
     
     // Clear old files
