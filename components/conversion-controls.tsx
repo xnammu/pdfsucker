@@ -205,13 +205,13 @@ export function ConversionControls({
                   onClick={() => onStartConversion()}
                   variant="outline"
                   className={cn(
-                    "w-full font-bold shadow-sm transition-all duration-300 uppercase tracking-widest h-14 text-xl",
+                    "w-full font-bold shadow-sm transition-all duration-300 uppercase tracking-widest",
                     allComplete && !isDirty
                       ? "border-muted text-muted-foreground"
                       : "border-primary text-primary hover:text-primary hover:bg-primary/10 glow-border glow-text bg-primary/5"
                   )}
                 >
-                  <Zap className="h-5 w-5 mr-2" />
+                  <Zap className="h-4 w-4 mr-2" />
                   Convert All
                 </Button>
                 
@@ -236,10 +236,18 @@ export function ConversionControls({
             )}
 
             {(files.length > 1 && allComplete) && (
-              <Button onClick={() => onDownloadAll()} variant="outline" className="w-full border-muted text-foreground hover:bg-accent/50 uppercase tracking-widest text-xs h-9">
-                <Archive className="h-3.5 w-3.5 mr-2" />
-                Download All as ZIP (E)
-              </Button>
+              <>
+                <Button onClick={() => onDownloadAll()} variant="outline" className="w-full border-muted text-foreground hover:bg-accent/50 uppercase tracking-widest text-xs h-9">
+                  <Archive className="h-3.5 w-3.5 mr-2" />
+                  Download All as ZIP (E)
+                </Button>
+                {selectedFileId && (
+                  <Button onClick={() => onDownloadAll(selectedFileId)} variant="ghost" className="w-full text-muted-foreground hover:text-foreground uppercase tracking-widest text-xs h-9">
+                    <Archive className="h-3.5 w-3.5 mr-2" />
+                    Download Current as ZIP
+                  </Button>
+                )}
+              </>
             )}
           </>
         )}

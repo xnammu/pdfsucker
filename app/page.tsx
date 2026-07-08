@@ -145,6 +145,12 @@ export default function PDFConverter() {
     }
   }, [selectedFileId, files])
 
+  const handleClearAllFiles = useCallback(() => {
+    activeFileIdsRef.current.clear()
+    setFiles([])
+    setSelectedFileId(null)
+  }, [])
+
   const handleRemoveFile = useCallback((id: string) => {
     activeFileIdsRef.current.delete(id)
     setFiles((prev) => {
@@ -526,7 +532,7 @@ export default function PDFConverter() {
           if (!selectedPath) return // User cancelled
 
           await invoke("save_converted_files", {
-            sourcePaths: [page.localPath],
+            mappings: [{ source: page.localPath, target: defaultName }],
             destPath: selectedPath,
             zipPack: false
           })
@@ -559,16 +565,24 @@ export default function PDFConverter() {
 
   const handleSaveToFolder = useCallback(async (targetFileId?: string) => {
     const filesToDownload = targetFileId ? files.filter(f => f.id === targetFileId) : files;
-    const allCompletedPages = filesToDownload.flatMap(f => f.pages.filter(p => !p.deleted && p.outputUrl))
 
-    const localPaths: string[] = []
-    allCompletedPages.forEach(p => {
-      if (p.localPath) {
-        localPaths.push(p.localPath)
+    const mappings: { source: string, target: string }[] = []
+    for (const file of filesToDownload) {
+      const safeFolderName = file.name.replace(/\.pdf$/i, "").replace(/[^a-z0-9\-_]/gi, '_')
+      const useFolder = filesToDownload.length > 1;
+      
+      for (const page of file.pages) {
+        if (page.deleted || !page.localPath) continue
+        const displayNum = getDisplayPageNumber(file, page.pageNumber)
+        const ext = page.localPath.split('.').pop() || 'jpg'
+        const fileName = `page-${displayNum.toString().padStart(3, "0")}.${ext}`
+        
+        const target = useFolder ? `${safeFolderName}/${fileName}` : fileName
+        mappings.push({ source: page.localPath, target })
       }
-    })
+    }
 
-    if (localPaths.length === 0) return
+    if (mappings.length === 0) return
 
     try {
       const { open } = await import("@tauri-apps/plugin-dialog")
@@ -585,7 +599,7 @@ export default function PDFConverter() {
       const destPath = Array.isArray(selectedPath) ? selectedPath[0] : selectedPath
 
       await invoke("save_converted_files", {
-        sourcePaths: localPaths,
+        mappings,
         destPath,
         zipPack: false
       })
@@ -607,14 +621,23 @@ export default function PDFConverter() {
       return
     }
 
-    const localPaths: string[] = []
-    allCompletedPages.forEach(p => {
-      if (p.localPath) {
-        localPaths.push(p.localPath)
+    const mappings: { source: string, target: string }[] = []
+    for (const file of filesToDownload) {
+      const safeFolderName = file.name.replace(/\.pdf$/i, "").replace(/[^a-z0-9\-_]/gi, '_')
+      const useFolder = filesToDownload.length > 1;
+      
+      for (const page of file.pages) {
+        if (page.deleted || !page.localPath) continue
+        const displayNum = getDisplayPageNumber(file, page.pageNumber)
+        const ext = page.localPath.split('.').pop() || 'jpg'
+        const fileName = `page-${displayNum.toString().padStart(3, "0")}.${ext}`
+        
+        const target = useFolder ? `${safeFolderName}/${fileName}` : fileName
+        mappings.push({ source: page.localPath, target })
       }
-    })
+    }
 
-    if (window.__TAURI_INTERNALS__ && localPaths.length > 0) {
+    if (window.__TAURI_INTERNALS__ && mappings.length > 0) {
       try {
         const { save } = await import("@tauri-apps/plugin-dialog")
         const { invoke } = await import("@tauri-apps/api/core")
@@ -631,7 +654,7 @@ export default function PDFConverter() {
         if (!selectedPath) return // User cancelled
 
         await invoke("save_converted_files", {
-          sourcePaths: localPaths,
+          mappings,
           destPath: selectedPath,
           zipPack: true
         })
@@ -650,7 +673,8 @@ export default function PDFConverter() {
     const zip = new JSZip()
     let processed = 0;
     for (const file of filesToDownload) {
-      const folder = filesToDownload.length === 1 ? zip : zip.folder(file.name.replace(".pdf", ""))
+      const safeFolderName = file.name.replace(/\.pdf$/i, "")
+      const folder = filesToDownload.length === 1 ? zip : zip.folder(safeFolderName)
       const targetZip = folder || zip;
 
       for (const page of file.pages) {
@@ -662,7 +686,8 @@ export default function PDFConverter() {
           if (!base64Data) continue
 
           const displayNum = getDisplayPageNumber(file, page.pageNumber)
-          targetZip.file(`page-${displayNum.toString().padStart(3, "0")}.${ext}`, base64Data, {
+          const fileNamePrefix = filesToDownload.length === 1 ? 'page-' : `${safeFolderName}-page-`
+          targetZip.file(`${fileNamePrefix}${displayNum.toString().padStart(3, "0")}.${ext}`, base64Data, {
             base64: true,
           })
 
@@ -906,6 +931,7 @@ export default function PDFConverter() {
                   onFilesAdded={handleFilesAdded}
                   files={files}
                   onRemoveFile={handleRemoveFile}
+                  onClearAllFiles={handleClearAllFiles}
                   disabled={job?.status === "processing"}
                   selectedFileId={selectedFileId}
                   onSelectFile={setSelectedFileId}

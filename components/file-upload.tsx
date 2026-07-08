@@ -7,6 +7,7 @@ import {
   AlertTriangle,
   X,
   CheckCircle2,
+  Trash2,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import type { PDFFile } from "@/lib/types"
@@ -18,6 +19,7 @@ interface FileUploadProps {
   disabled?: boolean
   selectedFileId?: string | null
   onSelectFile?: (id: string) => void
+  onClearAllFiles?: () => void
 }
 
 export function FileUpload({
@@ -27,6 +29,7 @@ export function FileUpload({
   disabled = false,
   selectedFileId,
   onSelectFile,
+  onClearAllFiles,
 }: FileUploadProps) {
   const [isDragging, setIsDragging] = useState(false)
 
@@ -197,6 +200,16 @@ export function FileUpload({
             <h3 className="text-xs font-semibold text-foreground uppercase tracking-wider">
               Uploaded Files ({files.length})
             </h3>
+            {files.length > 1 && onClearAllFiles && (
+              <button
+                onClick={onClearAllFiles}
+                disabled={disabled}
+                className="text-xs text-muted-foreground hover:text-destructive transition-colors disabled:opacity-50 uppercase tracking-widest font-semibold flex items-center gap-1"
+              >
+                <Trash2 className="h-3 w-3" />
+                Clear All
+              </button>
+            )}
           </div>
           <div className="space-y-3 max-h-[45vh] overflow-y-auto pr-2">
             {files.map((file) => (
@@ -252,9 +265,9 @@ export function FileUpload({
                   disabled={
                     file.status === "processing"
                   }
-                  className="p-1.5 rounded-md hover:bg-background/50 transition-colors opacity-0 group-hover:opacity-100 disabled:opacity-50"
+                  className="p-2 rounded-md hover:bg-destructive/10 hover:text-destructive transition-colors opacity-0 group-hover:opacity-100 disabled:opacity-50 text-muted-foreground"
                 >
-                  <X className="h-4 w-4 text-muted-foreground" />
+                  <Trash2 className="h-4 w-4" />
                 </button>
               </div>
             ))}

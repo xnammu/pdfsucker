@@ -1,5 +1,12 @@
 use std::process::Command;
 use std::fs;
+use serde::Deserialize;
+
+#[derive(Deserialize)]
+pub struct SaveFileMapping {
+    pub source: String,
+    pub target: String,
+}
 
 fn find_ghostscript() -> std::path::PathBuf {
     // 1. Try resolving from PATH first
@@ -110,7 +117,7 @@ fn get_file_size(path: String) -> Result<u64, String> {
 
 #[tauri::command]
 async fn save_converted_files(
-    source_paths: Vec<String>,
+    mappings: Vec<SaveFileMapping>,
     dest_path: String,
     zip_pack: bool,
 ) -> Result<(), String> {
@@ -121,26 +128,23 @@ async fn save_converted_files(
         let options = zip::write::FileOptions::default()
             .compression_method(zip::CompressionMethod::Deflated);
 
-        for path_str in source_paths {
-            let path = std::path::Path::new(&path_str);
-            if let Some(file_name) = path.file_name() {
-                let name_str = file_name.to_string_lossy().into_owned();
-                zip.start_file(name_str, options).map_err(|e| e.to_string())?;
-                let bytes = std::fs::read(&path).map_err(|e| e.to_string())?;
-                zip.write_all(&bytes).map_err(|e| e.to_string())?;
-            }
+        for mapping in mappings {
+            zip.start_file(&mapping.target, options).map_err(|e| e.to_string())?;
+            let bytes = std::fs::read(&mapping.source).map_err(|e| e.to_string())?;
+            zip.write_all(&bytes).map_err(|e| e.to_string())?;
         }
         zip.finish().map_err(|e| e.to_string())?;
     } else {
         let dest_dir = std::path::Path::new(&dest_path);
         let _ = std::fs::create_dir_all(dest_dir);
 
-        for path_str in source_paths {
-            let path = std::path::Path::new(&path_str);
-            if let Some(file_name) = path.file_name() {
-                let target_path = dest_dir.join(file_name);
-                std::fs::copy(&path, &target_path).map_err(|e| e.to_string())?;
+        for mapping in mappings {
+            let target_path = dest_dir.join(&mapping.target);
+            // Ensure parent directories exist
+            if let Some(parent) = target_path.parent() {
+                let _ = std::fs::create_dir_all(parent);
             }
+            std::fs::copy(&mapping.source, &target_path).map_err(|e| e.to_string())?;
         }
     }
     Ok(())
