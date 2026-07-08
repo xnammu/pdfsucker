@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef } from "react"
 import Image from "next/image"
-import { ZoomIn, ZoomOut, RotateCcw, RotateCw, FlipHorizontal, FlipVertical, Move, AlertTriangle, CheckCircle2, RefreshCw, GripVertical, Sparkles, Loader2, Trash2, Layers, Crop, Scissors } from "lucide-react"
+import { ZoomIn, ZoomOut, RotateCcw, RotateCw, FlipHorizontal, FlipVertical, Move, AlertTriangle, CheckCircle2, RefreshCw, GripVertical, Sparkles, Loader2, Trash2, Layers, Crop, Scissors, Zap } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import type { PDFFile, PDFPage } from "@/lib/types"
@@ -43,7 +43,7 @@ export function PagePreview({
   const selectedPage = selectedFile?.pages.find(
     (p) => p.pageNumber === selectedPageNumber && !p.deleted
   )
-  
+
   const [isCropActive, setIsCropActive] = useState(false)
   const [cropBox, setCropBox] = useState({ x: 15, y: 15, w: 70, h: 70 })
   const [activeHandle, setActiveHandle] = useState<string | null>(null)
@@ -74,13 +74,13 @@ export function PagePreview({
         selectedPage.flipX,
         selectedPage.flipY
       )
-      
+
       const link = document.createElement("a")
       link.href = snippetUrl
       const cleanFileName = selectedFile.name.replace(/\.pdf$/i, "")
       link.download = `${cleanFileName}-page-${selectedPage.pageNumber}-snippet.png`
       link.click()
-      
+
       // Safe timeout to prevent browser race conditions revoking the URL before the download starts
       setTimeout(() => {
         URL.revokeObjectURL(snippetUrl)
@@ -96,24 +96,24 @@ export function PagePreview({
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
       if (!activeHandle || !dragStartRef.current || !selectedFile || !selectedPage) return
-      
+
       const dx = e.clientX - dragStartRef.current.x
       const dy = e.clientY - dragStartRef.current.y
-      
+
       const isRotated = selectedPage.rotation === 90 || selectedPage.rotation === 270
       const originalRatio = selectedPage.width / selectedPage.height
       const visualWidth = 400
       const visualHeight = isRotated ? 400 * originalRatio : 400 / originalRatio
       const innerWidth = isRotated ? visualHeight : visualWidth
       const innerHeight = isRotated ? visualWidth : visualHeight
-      
+
       const zoomScale = zoom / 100
       const pctDx = (dx / (innerWidth * zoomScale)) * 100
       const pctDy = (dy / (innerHeight * zoomScale)) * 100
-      
+
       let localDx = pctDx
       let localDy = pctDy
-      
+
       const rot = selectedPage.rotation || 0
       if (rot === 90) {
         localDx = pctDy
@@ -125,13 +125,13 @@ export function PagePreview({
         localDx = -pctDy
         localDy = pctDx
       }
-      
+
       if (selectedPage.flipX) localDx = -localDx
       if (selectedPage.flipY) localDy = -localDy
-      
+
       const startBox = dragStartRef.current.box
       let newBox = { ...startBox }
-      
+
       if (activeHandle === "move") {
         newBox.x = Math.max(0, Math.min(100 - startBox.w, startBox.x + localDx))
         newBox.y = Math.max(0, Math.min(100 - startBox.h, startBox.y + localDy))
@@ -153,20 +153,20 @@ export function PagePreview({
           newBox.h = Math.max(5, Math.min(100 - startBox.y, startBox.h + localDy))
         }
       }
-      
+
       setCropBox(newBox)
     }
-    
+
     const handleMouseUp = () => {
       setActiveHandle(null)
       dragStartRef.current = null
     }
-    
+
     if (activeHandle) {
       window.addEventListener("mousemove", handleMouseMove)
       window.addEventListener("mouseup", handleMouseUp)
     }
-    
+
     return () => {
       window.removeEventListener("mousemove", handleMouseMove)
       window.removeEventListener("mouseup", handleMouseUp)
@@ -243,7 +243,7 @@ export function PagePreview({
 
       if (e.key === "Delete" || e.key === "Backspace") {
         if (!selectedFile) return
-        
+
         const checkedPageNumbers = selectedFile.pages
           .filter((p) => p.selected && !p.deleted)
           .map((p) => p.pageNumber)
@@ -297,12 +297,12 @@ export function PagePreview({
 
     setPageQualities((prev) => {
       const next = { ...prev }
-      
+
       if (isAllEnabled) {
         // Apply to all pages in the current file
         const pages = selectedFile.pages
         const allAlreadyHaveIt = pages.every(p => prev[`${selectedFile.id}-${p.pageNumber}`] === quality)
-        
+
         pages.forEach((p) => {
           const key = `${selectedFile.id}-${p.pageNumber}`
           if (allAlreadyHaveIt) {
@@ -320,7 +320,7 @@ export function PagePreview({
           next[key] = quality
         }
       }
-      
+
       return next
     })
   }
@@ -328,21 +328,21 @@ export function PagePreview({
   const clampOffset = (x: number, y: number, scale: number) => {
     if (!scrollRef.current) return { x, y }
     const rect = scrollRef.current.getBoundingClientRect()
-    
+
     const isRotated = selectedPage?.rotation === 90 || selectedPage?.rotation === 270
-    const originalRatio = selectedPage ? selectedPage.width / selectedPage.height : 3/4
+    const originalRatio = selectedPage ? selectedPage.width / selectedPage.height : 3 / 4
     const visualWidth = 400
     const visualHeight = isRotated ? 400 * originalRatio : 400 / originalRatio
 
     const imgWidth = visualWidth * scale
     const imgHeight = visualHeight * scale
-    
+
     const maxX = Math.max(0, (imgWidth - rect.width) / 2)
     const minX = -maxX
-    
+
     const maxY = Math.max(0, (imgHeight - rect.height) / 2)
     const minY = -maxY
-    
+
     return {
       x: Math.max(minX, Math.min(maxX, x)),
       y: Math.max(minY, Math.min(maxY, y))
@@ -355,7 +355,7 @@ export function PagePreview({
       const oldScale = prevZoom / 100
       const newScale = newZoom / 100
       const ratio = newScale / oldScale
-      
+
       setOffset((prev) => {
         let newX, newY
         if (centerTarget) {
@@ -367,7 +367,7 @@ export function PagePreview({
         }
         return clampOffset(newX, newY, newScale)
       })
-      
+
       return newZoom
     })
   }
@@ -406,17 +406,17 @@ export function PagePreview({
         e.preventDefault()
         const containerRect = containerRef.current.getBoundingClientRect()
         const toolbarRect = toolbarRef.current.getBoundingClientRect()
-        
+
         setToolbarOffset((prev) => {
           const newX = prev.x + e.movementX
           const newY = prev.y + e.movementY
-          
+
           const maxOffsetX = Math.max(0, (containerRect.width - toolbarRect.width) / 2)
           const minOffsetX = -maxOffsetX
-          
+
           const minOffsetY = -(containerRect.height - 16 - toolbarRect.height)
           const maxOffsetY = 16
-          
+
           return {
             x: Math.max(minOffsetX, Math.min(maxOffsetX, newX)),
             y: Math.max(minOffsetY, Math.min(maxOffsetY, newY)),
@@ -448,7 +448,7 @@ export function PagePreview({
 
   const onMouseMove = (e: React.MouseEvent) => {
     if (isDraggingToolbar) return
-    
+
     if (!isDragging) return
     e.preventDefault()
     setOffset((prev) => clampOffset(prev.x + e.movementX, prev.y + e.movementY, zoom / 100))
@@ -457,7 +457,7 @@ export function PagePreview({
   const onWheel = (e: React.WheelEvent) => {
     if (!scrollRef.current) return
     const rect = scrollRef.current.getBoundingClientRect()
-    
+
     // Mouse position relative to center of the container
     const mouseX = e.clientX - rect.left - rect.width / 2
     const mouseY = e.clientY - rect.top - rect.height / 2
@@ -475,7 +475,7 @@ export function PagePreview({
   const onDoubleClick = (e: React.MouseEvent) => {
     if (!scrollRef.current) return
     const rect = scrollRef.current.getBoundingClientRect()
-    
+
     // Mouse position relative to center of the container
     const mouseX = e.clientX - rect.left - rect.width / 2
     const mouseY = e.clientY - rect.top - rect.height / 2
@@ -504,14 +504,31 @@ export function PagePreview({
 
   if (!selectedFile) {
     return (
-      <div className="flex items-center justify-center h-full bg-secondary/30 rounded-lg">
-        <div className="text-center p-8">
-          <div className="p-4 rounded-full bg-secondary inline-block mb-4">
-            <Move className="h-8 w-8 text-muted-foreground" />
+      <div className="flex flex-col items-center justify-center h-full bg-background/50 rounded-2xl relative overflow-hidden border border-border/20 shadow-inner">
+        <div className="text-center p-8 max-w-lg z-10">
+          <div className="p-4 rounded-full bg-primary/10 border border-primary/20 inline-block mb-6 glow-border shadow-[0_0_15px_var(--color-primary)]">
+            <Zap className="h-10 w-10 text-primary" />
           </div>
-          <p className="text-muted-foreground">
-            Upload a PDF to preview pages
+          <h2 className="text-2xl font-bold text-foreground mb-2 tracking-tight">The Fastest Local Document Engine</h2>
+          <p className="text-muted-foreground mb-10 text-sm">
+            Professional-grade processing for creators, designers, print shops, and publishers.
           </p>
+
+          <div className="bg-card/40 backdrop-blur-md rounded-xl border border-border/50 p-6 text-left shadow-xl">
+            <h3 className="text-sm font-bold text-primary tracking-widest uppercase mb-4 flex items-center gap-2">
+              <Layers className="h-4 w-4" /> Feature Roadmap
+            </h3>
+            <div className="grid grid-cols-2 gap-x-8 gap-y-3 text-xs text-muted-foreground">
+              <div className="flex items-center gap-2"><CheckCircle2 className="h-3 w-3 text-primary" /> PDF → JPG / PNG / WebP</div>
+              <div className="flex items-center gap-2"><div className="w-1.5 h-1.5 rounded-full bg-muted-foreground/30"></div> Image → PDF</div>
+              <div className="flex items-center gap-2"><div className="w-1.5 h-1.5 rounded-full bg-muted-foreground/30"></div> Merge PDFs</div>
+              <div className="flex items-center gap-2"><div className="w-1.5 h-1.5 rounded-full bg-muted-foreground/30"></div> Split PDFs</div>
+              <div className="flex items-center gap-2"><div className="w-1.5 h-1.5 rounded-full bg-muted-foreground/30"></div> Compress PDFs</div>
+              <div className="flex items-center gap-2"><div className="w-1.5 h-1.5 rounded-full bg-muted-foreground/30"></div> OCR (Offline)</div>
+              <div className="flex items-center gap-2"><div className="w-1.5 h-1.5 rounded-full bg-muted-foreground/30"></div> Password Management</div>
+              <div className="flex items-center gap-2"><div className="w-1.5 h-1.5 rounded-full bg-muted-foreground/30"></div> Batch Rename</div>
+            </div>
+          </div>
         </div>
       </div>
     )
@@ -530,40 +547,42 @@ export function PagePreview({
             </div>
           )}
         </div>
-        
+
         {/* Premium Floating Machined Toolbar */}
-        <div className="absolute left-1/2 -translate-x-1/2 flex items-center gap-3 px-4 py-2 bg-card/60 backdrop-blur-xl border border-primary/30 rounded-full shadow-[0_8px_32px_rgba(0,0,0,0.5)]">
+        <div className="absolute left-1/2 -translate-x-1/2 flex items-center px-4 py-2 machined-toolbar z-50">
           {/* Master Controls */}
-          <div className="flex items-center gap-1 border-r border-border/50 pr-3">
-            <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full text-muted-foreground hover:text-primary hover:bg-primary/20 transition-colors" onClick={() => onMasterTransform(selectedFile.id, 'rotateCcw')} title="Rotate Counter-Clockwise (Shift+R)">
+          <div className="flex items-center gap-1 pr-2">
+            <Button variant="ghost" size="icon" className="h-8 w-8 machined-toolbar-btn" onClick={() => onMasterTransform(selectedFile.id, 'rotateCcw')} title="Rotate Counter-Clockwise (Shift+R)">
               <RotateCcw className="h-4 w-4" />
             </Button>
-            <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full text-muted-foreground hover:text-primary hover:bg-primary/20 transition-colors" onClick={() => onMasterTransform(selectedFile.id, 'rotateCw')} title="Rotate Clockwise (R)">
+            <Button variant="ghost" size="icon" className="h-8 w-8 machined-toolbar-btn" onClick={() => onMasterTransform(selectedFile.id, 'rotateCw')} title="Rotate Clockwise (R)">
               <RotateCw className="h-4 w-4" />
             </Button>
-            <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full text-muted-foreground hover:text-primary hover:bg-primary/20 transition-colors" onClick={() => onMasterTransform(selectedFile.id, 'flipX')}>
+            <Button variant="ghost" size="icon" className="h-8 w-8 machined-toolbar-btn" onClick={() => onMasterTransform(selectedFile.id, 'flipX')} title="Flip Horizontal">
               <FlipHorizontal className="h-4 w-4" />
             </Button>
-            <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full text-muted-foreground hover:text-primary hover:bg-primary/20 transition-colors" onClick={() => onMasterTransform(selectedFile.id, 'flipY')}>
+            <Button variant="ghost" size="icon" className="h-8 w-8 machined-toolbar-btn" onClick={() => onMasterTransform(selectedFile.id, 'flipY')} title="Flip Vertical">
               <FlipVertical className="h-4 w-4" />
             </Button>
           </div>
+
+          <div className="machined-toolbar-divider"></div>
           {/* HD/FHD Quality Selector */}
-          <div className="flex items-center gap-1.5 border-r border-border/50 pr-3">
+          <div className="flex items-center gap-1.5 px-2">
             <Button
               variant="ghost"
               size="sm"
               onClick={() => setIsAllEnabled(!isAllEnabled)}
               className={cn(
                 "h-7 px-3 text-[11px] font-bold tracking-wider uppercase rounded-full transition-all duration-300",
-                isAllEnabled 
-                  ? "bg-primary/20 text-primary border border-primary/50 glow-text" 
-                  : "text-muted-foreground hover:text-foreground"
+                isAllEnabled
+                  ? "bg-primary/20 text-primary border border-primary/50 glow-text"
+                  : "machined-toolbar-btn"
               )}
             >
               All
             </Button>
-            
+
             <Button
               variant="ghost"
               size="sm"
@@ -573,7 +592,7 @@ export function PagePreview({
                 "h-7 px-3 text-[11px] font-bold tracking-wider uppercase rounded-full transition-all duration-300 gap-1.5",
                 currentQuality === "hd"
                   ? "bg-primary text-primary-foreground shadow-[0_0_10px_var(--color-primary)]"
-                  : "text-muted-foreground hover:text-foreground"
+                  : "machined-toolbar-btn"
               )}
             >
               {isHdLoading && currentQuality === "hd" ? (
@@ -591,7 +610,7 @@ export function PagePreview({
                 "h-7 px-3 text-[11px] font-bold tracking-wider uppercase rounded-full transition-all duration-300 gap-1.5",
                 currentQuality === "fhd"
                   ? "bg-primary text-primary-foreground shadow-[0_0_10px_var(--color-primary)]"
-                  : "text-muted-foreground hover:text-foreground"
+                  : "machined-toolbar-btn"
               )}
             >
               {isHdLoading && currentQuality === "fhd" ? (
@@ -600,14 +619,16 @@ export function PagePreview({
               FHD
             </Button>
           </div>
+
+          <div className="machined-toolbar-divider"></div>
           {/* Zoom Controls */}
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1 pl-2">
             <Button
               variant="ghost"
               size="icon"
               onClick={handleZoomOut}
               disabled={zoom <= 25}
-              className="h-8 w-8 rounded-full text-muted-foreground hover:text-primary hover:bg-primary/20 transition-colors"
+              className="h-8 w-8 machined-toolbar-btn"
               title="Zoom Out (-)"
             >
               <ZoomOut className="h-4 w-4" />
@@ -620,7 +641,7 @@ export function PagePreview({
               size="icon"
               onClick={handleZoomIn}
               disabled={zoom >= 10000}
-              className="h-8 w-8 rounded-full text-muted-foreground hover:text-primary hover:bg-primary/20 transition-colors"
+              className="h-8 w-8 machined-toolbar-btn"
               title="Zoom In (+)"
             >
               <ZoomIn className="h-4 w-4" />
@@ -650,7 +671,7 @@ export function PagePreview({
                   })
                 }
               }}
-              className="h-8 w-8 rounded-full text-muted-foreground hover:text-primary hover:bg-primary/20 transition-colors ml-2"
+              className="h-8 w-8 machined-toolbar-btn ml-1"
               title="Reset Zoom & Adjustments (F)"
             >
               <RefreshCw className="h-4 w-4" />
@@ -709,7 +730,7 @@ export function PagePreview({
                     const checkedPageNumbers = selectedFile.pages
                       .filter((p) => p.selected && !p.deleted)
                       .map((p) => p.pageNumber)
-                    
+
                     if (checkedPageNumbers.length > 0) {
                       onDeleteMultiplePages(selectedFile.id, checkedPageNumbers)
                     }
@@ -722,7 +743,7 @@ export function PagePreview({
               </>
             )}
           </div>
-          
+
           <div className="flex-1 overflow-y-auto pr-1 select-none scrollbar-thin scrollbar-thumb-primary/20 hover:scrollbar-thumb-primary/45 scrollbar-track-transparent">
             <div className="p-3 space-y-3">
               {selectedFile.pages.filter(p => !p.deleted).map((page, idx) => (
@@ -737,7 +758,7 @@ export function PagePreview({
                         const start = Math.min(lastClickedPage, page.pageNumber)
                         const end = Math.max(lastClickedPage, page.pageNumber)
                         const targetSelectedState = !page.selected
-                        
+
                         selectedFile.pages.forEach((p) => {
                           if (p.pageNumber >= start && p.pageNumber <= end) {
                             onUpdatePageTransform(selectedFile.id, p.pageNumber, { selected: targetSelectedState })
@@ -747,7 +768,7 @@ export function PagePreview({
                         onUpdatePageTransform(selectedFile.id, page.pageNumber, { selected: !page.selected })
                       }
                     }
-                    
+
                     setLastClickedPage(page.pageNumber)
                   }}
                   className={cn(
@@ -775,8 +796,8 @@ export function PagePreview({
                   <div className="absolute top-1.5 left-1.5 z-10 pointer-events-none">
                     <div className={cn(
                       "w-4 h-4 rounded-sm border flex items-center justify-center transition-all duration-200",
-                      page.selected 
-                        ? "bg-primary border-primary text-primary-foreground scale-100 shadow-[0_0_8px_var(--color-primary)]" 
+                      page.selected
+                        ? "bg-primary border-primary text-primary-foreground scale-100 shadow-[0_0_8px_var(--color-primary)]"
                         : "bg-background/90 border-muted-foreground/50 opacity-0 group-hover:opacity-100 scale-95 hover:scale-100 hover:border-primary"
                     )}>
                       {page.selected && (
@@ -836,28 +857,28 @@ export function PagePreview({
             <div className="flex-1 flex flex-col relative group" ref={containerRef}>
               {(() => {
                 const isRotated = selectedPage?.rotation === 90 || selectedPage?.rotation === 270
-                const originalRatio = selectedPage ? selectedPage.width / selectedPage.height : 3/4
-              const visualWidth = 400
-              const visualHeight = isRotated ? 400 * originalRatio : 400 / originalRatio
-              
-              const innerWidth = isRotated ? visualHeight : visualWidth
-              const innerHeight = isRotated ? visualWidth : visualHeight
+                const originalRatio = selectedPage ? selectedPage.width / selectedPage.height : 3 / 4
+                const visualWidth = 400
+                const visualHeight = isRotated ? 400 * originalRatio : 400 / originalRatio
 
-              return (
-                <>
-                  <div 
-                    className={cn(
-                      "flex-1 overflow-hidden relative flex items-center justify-center", 
-                      isDragging ? "cursor-grabbing" : "cursor-grab"
-                    )}
-                    ref={scrollRef}
-                    onMouseDown={onMouseDown}
-                    onMouseLeave={onMouseLeave}
-                    onMouseUp={onMouseUp}
-                    onMouseMove={onMouseMove}
-                    onWheel={onWheel}
-                    onDoubleClick={onDoubleClick}
-                  >
+                const innerWidth = isRotated ? visualHeight : visualWidth
+                const innerHeight = isRotated ? visualWidth : visualHeight
+
+                return (
+                  <>
+                    <div
+                      className={cn(
+                        "flex-1 overflow-hidden relative flex items-center justify-center",
+                        isDragging ? "cursor-grabbing" : "cursor-grab"
+                      )}
+                      ref={scrollRef}
+                      onMouseDown={onMouseDown}
+                      onMouseLeave={onMouseLeave}
+                      onMouseUp={onMouseUp}
+                      onMouseMove={onMouseMove}
+                      onWheel={onWheel}
+                      onDoubleClick={onDoubleClick}
+                    >
                       <div
                         className="relative bg-secondary rounded-lg overflow-hidden shadow-lg flex-shrink-0"
                         style={{
@@ -868,10 +889,10 @@ export function PagePreview({
                           transition: isDragging ? "none" : "transform 0.1s ease-out"
                         }}
                       >
-                        <div 
+                        <div
                           className="relative overflow-hidden"
                           style={{
-                            width: `${innerWidth}px`, 
+                            width: `${innerWidth}px`,
                             height: `${innerHeight}px`,
                             position: 'absolute',
                             top: '50%',
@@ -942,76 +963,76 @@ export function PagePreview({
                           )}
                         </div>
                       </div>
-                  </div>
-
-                  {/* Floating Page Controls */}
-                  {selectedPage && (
-                    <div 
-                      ref={toolbarRef}
-                      className={cn(
-                        "absolute bottom-4 left-1/2 flex items-center gap-1 p-1 bg-background/90 backdrop-blur-md border border-border rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity",
-                        isDraggingToolbar ? "opacity-100 transition-none" : ""
-                      )}
-                      style={{
-                        transform: `translate(calc(-50% + ${toolbarOffset.x}px), ${toolbarOffset.y}px)`,
-                      }}
-                    >
-                      <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full hover:bg-secondary" onClick={() => onUpdatePageTransform(selectedFile.id, selectedPage.pageNumber, { rotation: ((selectedPage.rotation || 0) + 270) % 360 })}>
-                        <RotateCcw className="h-4 w-4" />
-                      </Button>
-                      <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full hover:bg-secondary" onClick={() => onUpdatePageTransform(selectedFile.id, selectedPage.pageNumber, { rotation: ((selectedPage.rotation || 0) + 90) % 360 })}>
-                        <RotateCw className="h-4 w-4" />
-                      </Button>
-                      <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full hover:bg-secondary" onClick={() => onUpdatePageTransform(selectedFile.id, selectedPage.pageNumber, { flipX: !selectedPage.flipX })}>
-                        <FlipHorizontal className="h-4 w-4" />
-                      </Button>
-                      <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full hover:bg-secondary" onClick={() => onUpdatePageTransform(selectedFile.id, selectedPage.pageNumber, { flipY: !selectedPage.flipY })}>
-                        <FlipVertical className="h-4 w-4" />
-                      </Button>
-                      <div className="w-px h-4 bg-border mx-1"></div>
-                      <Button
-                        variant={isCropActive ? "default" : "ghost"}
-                        size="icon"
-                        className={cn(
-                          "h-8 w-8 rounded-full transition-colors",
-                          isCropActive ? "bg-primary text-primary-foreground" : "hover:bg-secondary"
-                        )}
-                        onClick={() => setIsCropActive(!isCropActive)}
-                        title="Toggle Crop Grid for Snippet Export"
-                      >
-                        <Crop className="h-4 w-4" />
-                      </Button>
-                      {isCropActive && (
-                        <>
-                          <div className="w-px h-4 bg-border mx-1"></div>
-                          <Button
-                            variant="default"
-                            size="sm"
-                            className="h-8 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white px-3 gap-1.5 font-medium shadow-md transition-all animate-in zoom-in-95 duration-200"
-                            onClick={handleExportSnippet}
-                            disabled={isExportingSnippet}
-                          >
-                            {isExportingSnippet ? (
-                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                            ) : (
-                              <Scissors className="h-3.5 w-3.5" />
-                            )}
-                            Export Snippet
-                          </Button>
-                        </>
-                      )}
-                      <div className="w-px h-4 bg-border mx-1"></div>
-                      <div 
-                        className={cn("px-1 flex items-center justify-center text-muted-foreground hover:text-foreground", isDraggingToolbar ? "cursor-grabbing" : "cursor-grab")}
-                        onMouseDown={onToolbarMouseDown}
-                      >
-                        <GripVertical className="h-4 w-4" />
-                      </div>
                     </div>
-                  )}
-                </>
-              )
-            })()}
+
+                    {/* Floating Page Controls */}
+                    {selectedPage && (
+                      <div
+                        ref={toolbarRef}
+                        className={cn(
+                          "absolute bottom-4 left-1/2 flex items-center gap-1 p-1 bg-background/90 backdrop-blur-md border border-border rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity",
+                          isDraggingToolbar ? "opacity-100 transition-none" : ""
+                        )}
+                        style={{
+                          transform: `translate(calc(-50% + ${toolbarOffset.x}px), ${toolbarOffset.y}px)`,
+                        }}
+                      >
+                        <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full hover:bg-secondary" onClick={() => onUpdatePageTransform(selectedFile.id, selectedPage.pageNumber, { rotation: ((selectedPage.rotation || 0) + 270) % 360 })}>
+                          <RotateCcw className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full hover:bg-secondary" onClick={() => onUpdatePageTransform(selectedFile.id, selectedPage.pageNumber, { rotation: ((selectedPage.rotation || 0) + 90) % 360 })}>
+                          <RotateCw className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full hover:bg-secondary" onClick={() => onUpdatePageTransform(selectedFile.id, selectedPage.pageNumber, { flipX: !selectedPage.flipX })}>
+                          <FlipHorizontal className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full hover:bg-secondary" onClick={() => onUpdatePageTransform(selectedFile.id, selectedPage.pageNumber, { flipY: !selectedPage.flipY })}>
+                          <FlipVertical className="h-4 w-4" />
+                        </Button>
+                        <div className="w-px h-4 bg-border mx-1"></div>
+                        <Button
+                          variant={isCropActive ? "default" : "ghost"}
+                          size="icon"
+                          className={cn(
+                            "h-8 w-8 rounded-full transition-colors",
+                            isCropActive ? "bg-primary text-primary-foreground" : "hover:bg-secondary"
+                          )}
+                          onClick={() => setIsCropActive(!isCropActive)}
+                          title="Toggle Crop Grid for Snippet Export"
+                        >
+                          <Crop className="h-4 w-4" />
+                        </Button>
+                        {isCropActive && (
+                          <>
+                            <div className="w-px h-4 bg-border mx-1"></div>
+                            <Button
+                              variant="default"
+                              size="sm"
+                              className="h-8 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white px-3 gap-1.5 font-medium shadow-md transition-all animate-in zoom-in-95 duration-200"
+                              onClick={handleExportSnippet}
+                              disabled={isExportingSnippet}
+                            >
+                              {isExportingSnippet ? (
+                                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                              ) : (
+                                <Scissors className="h-3.5 w-3.5" />
+                              )}
+                              Export Snippet
+                            </Button>
+                          </>
+                        )}
+                        <div className="w-px h-4 bg-border mx-1"></div>
+                        <div
+                          className={cn("px-1 flex items-center justify-center text-muted-foreground hover:text-foreground", isDraggingToolbar ? "cursor-grabbing" : "cursor-grab")}
+                          onMouseDown={onToolbarMouseDown}
+                        >
+                          <GripVertical className="h-4 w-4" />
+                        </div>
+                      </div>
+                    )}
+                  </>
+                )
+              })()}
             </div>
           )}
 

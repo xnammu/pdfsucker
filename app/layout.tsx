@@ -37,8 +37,13 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark bg-background" suppressHydrationWarning>
       <body className="font-sans antialiased" suppressHydrationWarning>
-        {children}
-        {process.env.NODE_ENV === 'production' && <Analytics />}
+        <div className="bg-ambient"></div>
+        <div className="noise-overlay"></div>
+        <div className="vignette"></div>
+        <div className="relative z-10 h-screen w-screen overflow-hidden">
+          {children}
+          {process.env.NODE_ENV === 'production' && <Analytics />}
+        </div>
       </body>
     </html>
   )

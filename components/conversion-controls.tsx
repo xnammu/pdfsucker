@@ -140,7 +140,12 @@ export function ConversionControls({
             </div>
             
             {!zipProgress.ready && (
-              <Progress value={(zipProgress.current / zipProgress.total) * 100} className="h-1.5 bg-muted/30 [&>div]:bg-primary" />
+              <div className="h-1.5 w-full bg-muted/30 rounded overflow-hidden">
+                <div 
+                  className="h-full bg-primary" 
+                  style={{ width: `${(zipProgress.current / zipProgress.total) * 100}%` }}
+                ></div>
+              </div>
             )}
             
             {zipProgress.ready && zipProgress.downloadUrl && (
@@ -176,7 +181,7 @@ export function ConversionControls({
                   <Button
                     onClick={() => onStartConversion(files[0].id)}
                     variant="outline"
-                    className="w-full font-bold shadow-sm border-primary text-primary hover:text-primary hover:bg-primary/10 glow-border glow-text transition-all duration-300 uppercase tracking-widest"
+                    className="w-full font-bold shadow-sm border-primary text-primary hover:text-primary hover:bg-primary/10 glow-border glow-text transition-all duration-300 uppercase tracking-widest h-12"
                   >
                     <Play className="h-4 w-4 mr-2" />
                     Update Current
@@ -186,9 +191,9 @@ export function ConversionControls({
                 <Button
                   onClick={() => onStartConversion(files[0].id)}
                   variant="outline"
-                  className="w-full font-bold shadow-sm border-primary text-primary hover:text-primary hover:bg-primary/10 glow-border glow-text transition-all duration-300 uppercase tracking-widest"
+                  className="w-full font-bold shadow-sm border-primary text-primary hover:text-primary hover:bg-primary/10 glow-border glow-text transition-all duration-300 uppercase tracking-widest h-12 text-lg"
                 >
-                  <Play className="h-4 w-4 mr-2" />
+                  <Play className="h-5 w-5 mr-2" />
                   Convert PDF
                 </Button>
               )
@@ -200,13 +205,13 @@ export function ConversionControls({
                   onClick={() => onStartConversion()}
                   variant="outline"
                   className={cn(
-                    "w-full font-bold shadow-sm transition-all duration-300 uppercase tracking-widest",
+                    "w-full font-bold shadow-sm transition-all duration-300 uppercase tracking-widest h-14 text-xl",
                     allComplete && !isDirty
                       ? "border-muted text-muted-foreground"
-                      : "border-primary text-primary hover:text-primary hover:bg-primary/10 glow-border glow-text"
+                      : "border-primary text-primary hover:text-primary hover:bg-primary/10 glow-border glow-text bg-primary/5"
                   )}
                 >
-                  <Zap className="h-4 w-4 mr-2" />
+                  <Zap className="h-5 w-5 mr-2" />
                   Convert All
                 </Button>
                 
@@ -217,7 +222,7 @@ export function ConversionControls({
                     className="w-full text-xs text-muted-foreground hover:text-foreground uppercase tracking-widest"
                   >
                     <Play className="h-3 w-3 mr-1.5" />
-                    Convert Current Only
+                    Convert Current
                   </Button>
                 )}
               </>
@@ -226,14 +231,14 @@ export function ConversionControls({
             {(files.length === 1 && files[0].status === "complete") && (
               <Button onClick={() => onDownloadAll()} variant="outline" className="w-full border-muted text-foreground hover:bg-accent/50 uppercase tracking-widest text-xs h-9">
                 <Archive className="h-3.5 w-3.5 mr-2" />
-                Download All as ZIP
+                Download as ZIP (E)
               </Button>
             )}
 
             {(files.length > 1 && allComplete) && (
               <Button onClick={() => onDownloadAll()} variant="outline" className="w-full border-muted text-foreground hover:bg-accent/50 uppercase tracking-widest text-xs h-9">
                 <Archive className="h-3.5 w-3.5 mr-2" />
-                Download All as ZIP
+                Download All as ZIP (E)
               </Button>
             )}
           </>

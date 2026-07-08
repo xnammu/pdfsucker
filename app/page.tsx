@@ -645,8 +645,10 @@ export default function PDFConverter() {
     }
 
     setZipProgress({ active: true, current: 0, total: allCompletedPages.length, message: "Preparing ZIP...", ready: false })
+    await new Promise(r => setTimeout(r, 500))
 
     const zip = new JSZip()
+    let processed = 0;
     for (const file of filesToDownload) {
       const folder = filesToDownload.length === 1 ? zip : zip.folder(file.name.replace(".pdf", ""))
       const targetZip = folder || zip;
@@ -666,7 +668,7 @@ export default function PDFConverter() {
 
           processed++
           if (processed % 5 === 0) {
-            setZipProgress(p => p ? { ...p, current: processed, message: `Compressing ${processed} of ${allCompletedPages.length} pages` } : null)
+            setZipProgress(p => p ? { ...p, current: processed, message: `Compressing ${processed} of ${allCompletedPages.length} pages...` } : null)
             await new Promise(r => setTimeout(r, 0))
           }
         }
@@ -813,9 +815,7 @@ export default function PDFConverter() {
   }, [selectedFileId, handleDownloadAll, handleMasterTransform])
 
   return (
-    <div className="flex flex-col h-screen bg-background text-foreground overflow-hidden bg-ambient relative">
-      <div className="noise-overlay"></div>
-      <div className="vignette"></div>
+    <div className="flex flex-col h-full text-foreground overflow-hidden">
 
       {/* Keyboard Shortcuts Overlay */}
       {showKeyboardShortcuts && (
