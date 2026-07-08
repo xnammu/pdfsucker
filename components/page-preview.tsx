@@ -258,6 +258,31 @@ export function PagePreview({
             onDeleteMultiplePages(selectedFile.id, [selectedPage.pageNumber])
           }
         }
+      } else if (e.key === "f" || e.key === "F") {
+        e.preventDefault()
+        handleResetZoom()
+      } else if (e.key === "=" || e.key === "+") {
+        e.preventDefault()
+        handleZoomIn()
+      } else if (e.key === "-") {
+        e.preventDefault()
+        handleZoomOut()
+      } else if (e.key === "ArrowLeft" || e.key === "ArrowUp") {
+        if (!selectedFile) return
+        const activePages = selectedFile.pages.filter(p => !p.deleted)
+        const currIdx = activePages.findIndex(p => p.pageNumber === selectedPageNumber)
+        if (currIdx > 0) {
+          e.preventDefault()
+          onSelectPage(activePages[currIdx - 1].pageNumber)
+        }
+      } else if (e.key === "ArrowRight" || e.key === "ArrowDown") {
+        if (!selectedFile) return
+        const activePages = selectedFile.pages.filter(p => !p.deleted)
+        const currIdx = activePages.findIndex(p => p.pageNumber === selectedPageNumber)
+        if (currIdx >= 0 && currIdx < activePages.length - 1) {
+          e.preventDefault()
+          onSelectPage(activePages[currIdx + 1].pageNumber)
+        }
       }
     }
 
@@ -347,7 +372,7 @@ export function PagePreview({
     })
   }
 
-  const handleZoomIn = () => doZoom(Math.min(zoom + 25, 1000))
+  const handleZoomIn = () => doZoom(Math.min(zoom + 25, 10000))
   const handleZoomOut = () => doZoom(Math.max(zoom - 25, 25))
   const handleResetZoom = () => {
     const isLandscape = selectedPage ? selectedPage.width > selectedPage.height : false
@@ -439,7 +464,7 @@ export function PagePreview({
 
     let newZoom = zoom
     if (e.deltaY < 0) {
-      newZoom = Math.min(zoom + 25, 1000)
+      newZoom = Math.min(zoom + 25, 10000)
     } else if (e.deltaY > 0) {
       newZoom = Math.max(zoom - 25, 25)
     }
@@ -493,43 +518,46 @@ export function PagePreview({
   }
 
   return (
-    <div className="flex flex-col h-full">
-      <div className="flex items-center justify-between p-3 border-b border-border bg-card rounded-t-lg">
-        <div className="flex items-center gap-2">
-          <span className="text-sm font-medium text-foreground">Preview</span>
+    <div className="flex flex-col h-full bg-background rounded-2xl overflow-hidden relative shadow-inner border border-border/20">
+      {/* Top Bar with Floating Pill Toolbar */}
+      <div className="flex items-center justify-between p-4 relative z-10">
+        <div className="flex items-center gap-3">
+          <span className="text-sm font-bold tracking-wide text-foreground">Preview</span>
           {selectedFile.metadata?.hasCMYK && (
-            <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-warning/10 text-warning text-xs">
+            <div className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-warning/20 text-warning text-[10px] font-bold tracking-widest uppercase">
               <AlertTriangle className="h-3 w-3" />
               <span>CMYK</span>
             </div>
           )}
         </div>
-        <div className="flex items-center gap-2">
+        
+        {/* Premium Floating Machined Toolbar */}
+        <div className="absolute left-1/2 -translate-x-1/2 flex items-center gap-3 px-4 py-2 bg-card/60 backdrop-blur-xl border border-primary/30 rounded-full shadow-[0_8px_32px_rgba(0,0,0,0.5)]">
           {/* Master Controls */}
-          <div className="flex items-center gap-1 border-r border-border pr-2 mr-1">
-            <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground" onClick={() => onMasterTransform(selectedFile.id, 'rotateCcw')}>
+          <div className="flex items-center gap-1 border-r border-border/50 pr-3">
+            <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full text-muted-foreground hover:text-primary hover:bg-primary/20 transition-colors" onClick={() => onMasterTransform(selectedFile.id, 'rotateCcw')} title="Rotate Counter-Clockwise (Shift+R)">
               <RotateCcw className="h-4 w-4" />
             </Button>
-            <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground" onClick={() => onMasterTransform(selectedFile.id, 'rotateCw')}>
+            <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full text-muted-foreground hover:text-primary hover:bg-primary/20 transition-colors" onClick={() => onMasterTransform(selectedFile.id, 'rotateCw')} title="Rotate Clockwise (R)">
               <RotateCw className="h-4 w-4" />
             </Button>
-            <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground" onClick={() => onMasterTransform(selectedFile.id, 'flipX')}>
+            <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full text-muted-foreground hover:text-primary hover:bg-primary/20 transition-colors" onClick={() => onMasterTransform(selectedFile.id, 'flipX')}>
               <FlipHorizontal className="h-4 w-4" />
             </Button>
-            <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground" onClick={() => onMasterTransform(selectedFile.id, 'flipY')}>
+            <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full text-muted-foreground hover:text-primary hover:bg-primary/20 transition-colors" onClick={() => onMasterTransform(selectedFile.id, 'flipY')}>
               <FlipVertical className="h-4 w-4" />
             </Button>
           </div>
           {/* HD/FHD Quality Selector */}
-          <div className="flex items-center gap-1.5 border-r border-border pr-2 mr-1 bg-secondary/30 p-0.5 rounded-full">
+          <div className="flex items-center gap-1.5 border-r border-border/50 pr-3">
             <Button
-              variant={isAllEnabled ? "default" : "ghost"}
+              variant="ghost"
               size="sm"
               onClick={() => setIsAllEnabled(!isAllEnabled)}
               className={cn(
-                "h-7 px-2.5 text-xs font-semibold rounded-full transition-all duration-200",
+                "h-7 px-3 text-[11px] font-bold tracking-wider uppercase rounded-full transition-all duration-300",
                 isAllEnabled 
-                  ? "bg-primary text-primary-foreground shadow-sm" 
+                  ? "bg-primary/20 text-primary border border-primary/50 glow-text" 
                   : "text-muted-foreground hover:text-foreground"
               )}
             >
@@ -537,103 +565,104 @@ export function PagePreview({
             </Button>
             
             <Button
-              variant={currentQuality === "hd" ? "default" : "ghost"}
+              variant="ghost"
               size="sm"
               onClick={() => handleToggleQuality("hd")}
               disabled={isHdLoading && currentQuality !== "hd"}
               className={cn(
-                "h-7 px-2.5 text-xs font-semibold rounded-full transition-all duration-200 gap-1",
+                "h-7 px-3 text-[11px] font-bold tracking-wider uppercase rounded-full transition-all duration-300 gap-1.5",
                 currentQuality === "hd"
-                  ? "bg-emerald-600 text-white shadow-sm hover:bg-emerald-600/90"
+                  ? "bg-primary text-primary-foreground shadow-[0_0_10px_var(--color-primary)]"
                   : "text-muted-foreground hover:text-foreground"
               )}
             >
               {isHdLoading && currentQuality === "hd" ? (
                 <Loader2 className="h-3 w-3 animate-spin" />
-              ) : (
-                <Sparkles className={cn("h-3 w-3", currentQuality === "hd" && "fill-current")} />
-              )}
+              ) : null}
               HD
             </Button>
 
             <Button
-              variant={currentQuality === "fhd" ? "default" : "ghost"}
+              variant="ghost"
               size="sm"
               onClick={() => handleToggleQuality("fhd")}
               disabled={isHdLoading && currentQuality !== "fhd"}
               className={cn(
-                "h-7 px-2.5 text-xs font-semibold rounded-full transition-all duration-200 gap-1",
+                "h-7 px-3 text-[11px] font-bold tracking-wider uppercase rounded-full transition-all duration-300 gap-1.5",
                 currentQuality === "fhd"
-                  ? "bg-violet-600 text-white shadow-sm hover:bg-violet-600/90"
+                  ? "bg-primary text-primary-foreground shadow-[0_0_10px_var(--color-primary)]"
                   : "text-muted-foreground hover:text-foreground"
               )}
             >
               {isHdLoading && currentQuality === "fhd" ? (
                 <Loader2 className="h-3 w-3 animate-spin" />
-              ) : (
-                <Sparkles className={cn("h-3 w-3", currentQuality === "fhd" && "fill-current")} />
-              )}
+              ) : null}
               FHD
             </Button>
           </div>
           {/* Zoom Controls */}
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleZoomOut}
-            disabled={zoom <= 25}
-            className="h-8 w-8 p-0"
-          >
-            <ZoomOut className="h-4 w-4" />
-          </Button>
-          <span className="text-xs font-mono text-muted-foreground w-12 text-center">
-            {zoom}%
-          </span>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleZoomIn}
-            disabled={zoom >= 1000}
-            className="h-8 w-8 p-0"
-          >
-            <ZoomIn className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => {
-              handleResetZoom()
-              if (selectedFile) {
-                // Reset page quality overrides back to standard blurry
-                setPageQualities((prev) => {
-                  const next = { ...prev }
+          <div className="flex items-center gap-1">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleZoomOut}
+              disabled={zoom <= 25}
+              className="h-8 w-8 rounded-full text-muted-foreground hover:text-primary hover:bg-primary/20 transition-colors"
+              title="Zoom Out (-)"
+            >
+              <ZoomOut className="h-4 w-4" />
+            </Button>
+            <span className="text-[11px] font-bold tracking-wider text-primary w-12 text-center glow-text">
+              {zoom}%
+            </span>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleZoomIn}
+              disabled={zoom >= 10000}
+              className="h-8 w-8 rounded-full text-muted-foreground hover:text-primary hover:bg-primary/20 transition-colors"
+              title="Zoom In (+)"
+            >
+              <ZoomIn className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => {
+                handleResetZoom()
+                if (selectedFile) {
+                  // Reset page quality overrides back to standard blurry
+                  setPageQualities((prev) => {
+                    const next = { ...prev }
+                    selectedFile.pages.forEach((p) => {
+                      delete next[`${selectedFile.id}-${p.pageNumber}`]
+                    })
+                    return next
+                  })
+                  // Reset all page rotations, flips, and selections back to defaults
                   selectedFile.pages.forEach((p) => {
-                    delete next[`${selectedFile.id}-${p.pageNumber}`]
+                    onUpdatePageTransform(selectedFile.id, p.pageNumber, {
+                      rotation: 0,
+                      flipX: false,
+                      flipY: false,
+                      selected: true
+                    })
                   })
-                  return next
-                })
-                // Reset all page rotations, flips, and selections back to defaults
-                selectedFile.pages.forEach((p) => {
-                  onUpdatePageTransform(selectedFile.id, p.pageNumber, {
-                    rotation: 0,
-                    flipX: false,
-                    flipY: false,
-                    selected: true
-                  })
-                })
-              }
-            }}
-            className="h-8 w-8 p-0"
-          >
-            <RefreshCw className="h-4 w-4" />
-          </Button>
+                }
+              }}
+              className="h-8 w-8 rounded-full text-muted-foreground hover:text-primary hover:bg-primary/20 transition-colors ml-2"
+              title="Reset Zoom & Adjustments (F)"
+            >
+              <RefreshCw className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
       </div>
 
       <div className="flex flex-1 min-h-0">
-        <div className="w-32 border-r border-border bg-card/50 flex flex-col">
+        <div className="w-36 border-r border-border bg-card/60 flex flex-col z-10 backdrop-blur-sm">
           {/* Static Page Selection Utility Menu */}
-          <div className="p-2 border-b border-border/60 bg-secondary/10 flex items-center justify-between text-[10px] font-semibold text-muted-foreground select-none">
+          <div className="p-3 border-b border-border/40 flex items-center justify-between text-[11px] font-bold tracking-wider text-muted-foreground uppercase select-none">
             <button
               onClick={() => {
                 if (selectedFile) {
@@ -642,11 +671,11 @@ export function PagePreview({
                   })
                 }
               }}
-              className="hover:text-foreground transition-colors cursor-pointer"
+              className="hover:text-primary transition-colors cursor-pointer"
             >
               All
             </button>
-            <span className="text-muted-foreground/40">•</span>
+            <span className="text-muted-foreground/30">•</span>
             <button
               onClick={() => {
                 if (selectedFile) {
@@ -655,11 +684,11 @@ export function PagePreview({
                   })
                 }
               }}
-              className="hover:text-foreground transition-colors cursor-pointer"
+              className="hover:text-primary transition-colors cursor-pointer"
             >
               None
             </button>
-            <span className="text-muted-foreground/40">•</span>
+            <span className="text-muted-foreground/30">•</span>
             <button
               onClick={() => {
                 if (selectedFile) {
@@ -668,13 +697,13 @@ export function PagePreview({
                   })
                 }
               }}
-              className="hover:text-foreground transition-colors cursor-pointer"
+              className="hover:text-primary transition-colors cursor-pointer"
             >
-              Invert
+              Inv
             </button>
             {selectedFile.pages.some((p) => p.selected && !p.deleted) && (
               <>
-                <span className="text-muted-foreground/40">•</span>
+                <span className="text-muted-foreground/30">•</span>
                 <button
                   onClick={() => {
                     const checkedPageNumbers = selectedFile.pages
@@ -685,17 +714,17 @@ export function PagePreview({
                       onDeleteMultiplePages(selectedFile.id, checkedPageNumbers)
                     }
                   }}
-                  className="text-destructive hover:text-destructive/80 transition-all duration-200 cursor-pointer animate-in fade-in scale-in duration-200 p-1 hover:bg-destructive/10 rounded flex items-center justify-center"
+                  className="text-destructive hover:text-destructive/80 transition-all duration-200 cursor-pointer animate-in fade-in scale-in duration-200 p-1 hover:bg-destructive/10 rounded-full flex items-center justify-center"
                   title={`Delete ${selectedFile.pages.filter((p) => p.selected && !p.deleted).length} selected page(s)`}
                 >
-                  <Trash2 className="h-3.5 w-3.5" />
+                  <Trash2 className="h-3 w-3" />
                 </button>
               </>
             )}
           </div>
           
           <div className="flex-1 overflow-y-auto pr-1 select-none scrollbar-thin scrollbar-thumb-primary/20 hover:scrollbar-thumb-primary/45 scrollbar-track-transparent">
-            <div className="p-2 space-y-2">
+            <div className="p-3 space-y-3">
               {selectedFile.pages.filter(p => !p.deleted).map((page, idx) => (
                 <button
                   key={page.pageNumber}
@@ -722,11 +751,11 @@ export function PagePreview({
                     setLastClickedPage(page.pageNumber)
                   }}
                   className={cn(
-                    "w-full aspect-[3/4] rounded-md overflow-hidden ring-2 transition-all relative group",
+                    "w-full aspect-[3/4] rounded-lg overflow-hidden border-2 transition-all duration-300 relative group",
                     page.pageNumber === selectedPageNumber
-                      ? "ring-primary"
-                      : cn(getStatusColor(page.status), "hover:ring-muted-foreground/50"),
-                    !page.selected && "opacity-40 grayscale-[30%]"
+                      ? "border-primary glow-border"
+                      : "border-transparent hover:border-primary/50",
+                    !page.selected && "opacity-30 grayscale-[50%]"
                   )}
                 >
                   {/* Delete Page hover action */}
@@ -745,13 +774,13 @@ export function PagePreview({
                   {/* Custom Checkbox overlay (visual only, events pass through) */}
                   <div className="absolute top-1.5 left-1.5 z-10 pointer-events-none">
                     <div className={cn(
-                      "w-4.5 h-4.5 rounded border flex items-center justify-center transition-all duration-200",
+                      "w-4 h-4 rounded-sm border flex items-center justify-center transition-all duration-200",
                       page.selected 
-                        ? "bg-primary border-primary text-primary-foreground scale-100 shadow-sm" 
-                        : "bg-background/90 border-muted-foreground/50 opacity-0 group-hover:opacity-100 scale-95 hover:scale-100 hover:border-foreground"
+                        ? "bg-primary border-primary text-primary-foreground scale-100 shadow-[0_0_8px_var(--color-primary)]" 
+                        : "bg-background/90 border-muted-foreground/50 opacity-0 group-hover:opacity-100 scale-95 hover:scale-100 hover:border-primary"
                     )}>
                       {page.selected && (
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="w-3 h-3">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="w-2.5 h-2.5">
                           <polyline points="20 6 9 17 4 12"></polyline>
                         </svg>
                       )}
@@ -766,22 +795,22 @@ export function PagePreview({
                     />
                   ) : (
                     <div className="w-full h-full bg-secondary flex items-center justify-center">
-                      <span className="text-xs text-muted-foreground">
+                      <span className="text-xs font-bold text-muted-foreground">
                         {page.pageNumber}
                       </span>
                     </div>
                   )}
-                  <div className="absolute bottom-0 left-0 right-0 bg-background/80 backdrop-blur-sm px-1 py-0.5">
-                    <span className="text-xs text-foreground">{idx + 1}</span>
+                  <div className="absolute bottom-0 left-0 right-0 bg-background/90 backdrop-blur-md px-1.5 py-1">
+                    <span className="text-[10px] font-bold text-foreground block text-center">{idx + 1} / {selectedFile.pages.filter(p => !p.deleted).length}</span>
                   </div>
                   {page.status === "complete" && (
-                    <div className="absolute top-1 right-1">
-                      <CheckCircle2 className="h-3 w-3 text-primary" />
+                    <div className="absolute top-1 right-1 drop-shadow-md">
+                      <CheckCircle2 className="h-4 w-4 text-primary" />
                     </div>
                   )}
                   {page.warnings.length > 0 && (
-                    <div className="absolute top-1 left-1">
-                      <AlertTriangle className="h-3 w-3 text-warning" />
+                    <div className="absolute top-1 left-1 drop-shadow-md">
+                      <AlertTriangle className="h-4 w-4 text-warning" />
                     </div>
                   )}
                 </button>

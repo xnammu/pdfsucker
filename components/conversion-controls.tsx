@@ -1,6 +1,7 @@
 "use client"
 
-import { Download, Archive, Loader2, Play, Square, Trash2, CheckCircle2 } from "lucide-react"
+import { useState, useEffect } from "react"
+import { Download, Archive, Loader2, Play, Square, Trash2, CheckCircle2, Zap } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
@@ -12,6 +13,8 @@ interface ConversionControlsProps {
   selectedFileId: string | null
   selectedFilePages?: number
   isDirty?: boolean
+  zipProgress?: { active: boolean; current: number; total: number; message: string; ready: boolean; size?: string; downloadUrl?: string; zipName?: string; } | null
+  onClearZipProgress?: () => void
   onStartConversion: (fileId?: string) => void
   onStopConversion: () => void
   onDownloadSingle: (fileId: string, pageNumber: number) => void
@@ -19,12 +22,23 @@ interface ConversionControlsProps {
   onReset: () => void
 }
 
+const SPEED_MESSAGES = [
+  "Analyzing PDF...",
+  "Extracting pages...",
+  "Rendering images...",
+  "Optimizing output...",
+  "Building archive...",
+  "Almost there..."
+]
+
 export function ConversionControls({
   files,
   job,
   selectedFileId,
   selectedFilePages = 0,
   isDirty = false,
+  zipProgress,
+  onClearZipProgress,
   onStartConversion,
   onStopConversion,
   onDownloadSingle,
@@ -39,17 +53,24 @@ export function ConversionControls({
   const displayCompletedPages = job ? job.processedPages : 0
   const progress = displayTotalPages > 0 ? (displayCompletedPages / displayTotalPages) * 100 : 0
 
+  const [messageIndex, setMessageIndex] = useState(0)
+
+  useEffect(() => {
+    if (isProcessing) {
+      const interval = setInterval(() => {
+        setMessageIndex((prev) => (prev + 1) % SPEED_MESSAGES.length)
+      }, 2500)
+      return () => clearInterval(interval)
+    }
+  }, [isProcessing])
+
   const selectedFile = files.find((f) => f.id === selectedFileId)
+  const allComplete = files.length > 0 && files.every(f => f.status === "complete")
 
   const formatDuration = (start: Date, end?: Date) => {
     const endTime = end || new Date()
     const diff = endTime.getTime() - start.getTime()
-    const seconds = Math.floor(diff / 1000)
-    const minutes = Math.floor(seconds / 60)
-    const remainingSeconds = seconds % 60
-    if (minutes > 0) {
-      return `${minutes}m ${remainingSeconds}s`
-    }
+    const seconds = (diff / 1000).toFixed(1)
     return `${seconds}s`
   }
 
@@ -57,16 +78,16 @@ export function ConversionControls({
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div className="space-y-1">
-          <h3 className="text-sm font-medium text-foreground">Conversion</h3>
+          <h3 className="text-sm font-medium text-foreground uppercase tracking-widest">Engine Status</h3>
           {job?.startTime && (
             <p className="text-xs text-muted-foreground flex items-center gap-1">
               {isProcessing
-                ? `Processing... ${formatDuration(job.startTime)}`
+                ? `⚡ Processing... ${formatDuration(job.startTime)}`
                 : isComplete
                 ? (
                   <>
-                    <span>Completed in {formatDuration(job.startTime, job.endTime)}</span>
-                    {!hasErrors && <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 inline-block animate-pulse" />}
+                    <span className="text-primary font-bold">Finished in {formatDuration(job.startTime, job.endTime)}. Faster than expected.</span>
+                    {!hasErrors && <Zap className="h-3.5 w-3.5 text-primary inline-block" />}
                   </>
                 )
                 : ""}
@@ -80,7 +101,7 @@ export function ConversionControls({
               size="icon"
               onClick={onReset}
               className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10 rounded-full"
-              title="Reset PDF Conversion Status"
+              title="Reset Processing Engine"
             >
               <Trash2 className="h-4 w-4" />
             </Button>
@@ -91,27 +112,71 @@ export function ConversionControls({
       {(isProcessing || isComplete) && (
         <div className="space-y-2">
           <div className="flex items-center justify-between text-xs">
-            <span className="text-muted-foreground">
-              {displayCompletedPages} of {displayTotalPages} pages
+            <span className="text-muted-foreground font-mono">
+              {isProcessing ? `⚡ Sucking ${displayTotalPages} pages...` : `⚡ Extraction Complete (${displayCompletedPages} Images Ready)`}
             </span>
-            <span className="font-mono text-muted-foreground">
+            <span className="font-mono text-primary font-bold">
               {Math.round(progress)}%
             </span>
           </div>
-          <Progress value={progress} className="h-2" />
+          <Progress value={progress} className="h-2 bg-muted/50 [&>div]:bg-primary shadow-[0_0_10px_var(--color-primary)]" />
+        </div>
+      )}
+
+      {zipProgress?.active && (
+        <div className="space-y-3 p-3 bg-card border border-border rounded-lg relative overflow-hidden animate-in fade-in zoom-in duration-300">
+          <div className="absolute inset-0 bg-primary/5"></div>
+          <div className="relative z-10 space-y-2">
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-primary font-bold uppercase tracking-wider flex items-center gap-1.5">
+                {zipProgress.ready ? <CheckCircle2 className="h-3.5 w-3.5" /> : <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+                {zipProgress.ready ? "✔ ZIP Ready" : zipProgress.message}
+              </span>
+              {!zipProgress.ready && (
+                <span className="font-mono text-muted-foreground">
+                  {Math.round((zipProgress.current / zipProgress.total) * 100)}%
+                </span>
+              )}
+            </div>
+            
+            {!zipProgress.ready && (
+              <Progress value={(zipProgress.current / zipProgress.total) * 100} className="h-1.5 bg-muted/30 [&>div]:bg-primary" />
+            )}
+            
+            {zipProgress.ready && zipProgress.downloadUrl && (
+              <div className="flex items-center gap-2 mt-2">
+                <Button 
+                  onClick={() => {
+                    const link = document.createElement("a")
+                    link.href = zipProgress.downloadUrl!
+                    link.download = zipProgress.zipName || "converted-files.zip"
+                    link.click()
+                    if (onClearZipProgress) onClearZipProgress()
+                  }} 
+                  className="flex-1 font-bold shadow-sm bg-primary text-primary-foreground hover:bg-primary/90 glow-primary transition-all duration-300 uppercase tracking-widest"
+                >
+                  <Download className="h-4 w-4 mr-2" />
+                  Download ({zipProgress.size})
+                </Button>
+                <Button variant="ghost" size="icon" onClick={onClearZipProgress} className="h-9 w-9 text-muted-foreground hover:text-destructive hover:bg-destructive/10">
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
+            )}
+          </div>
         </div>
       )}
 
       <div className="flex flex-col gap-2">
-        {!isProcessing && (
+        {!isProcessing && !zipProgress?.active && (
           <>
             {files.length === 1 && (
               files[0].status === "complete" ? (
                 isDirty && (
                   <Button
                     onClick={() => onStartConversion(files[0].id)}
-                    variant="default"
-                    className="w-full font-semibold shadow-sm"
+                    variant="outline"
+                    className="w-full font-bold shadow-sm border-primary text-primary hover:text-primary hover:bg-primary/10 glow-border glow-text transition-all duration-300 uppercase tracking-widest"
                   >
                     <Play className="h-4 w-4 mr-2" />
                     Update Current
@@ -120,53 +185,55 @@ export function ConversionControls({
               ) : (
                 <Button
                   onClick={() => onStartConversion(files[0].id)}
-                  variant="default"
-                  className="w-full font-semibold shadow-sm"
+                  variant="outline"
+                  className="w-full font-bold shadow-sm border-primary text-primary hover:text-primary hover:bg-primary/10 glow-border glow-text transition-all duration-300 uppercase tracking-widest"
                 >
                   <Play className="h-4 w-4 mr-2" />
-                  Start Conversion
+                  Convert PDF
                 </Button>
               )
             )}
 
-            {files.length > 1 && selectedFileId && (
-              selectedFile?.status === "complete" ? (
-                isDirty && (
+            {files.length > 1 && (
+              <>
+                <Button
+                  onClick={() => onStartConversion()}
+                  variant="outline"
+                  className={cn(
+                    "w-full font-bold shadow-sm transition-all duration-300 uppercase tracking-widest",
+                    allComplete && !isDirty
+                      ? "border-muted text-muted-foreground"
+                      : "border-primary text-primary hover:text-primary hover:bg-primary/10 glow-border glow-text"
+                  )}
+                >
+                  <Zap className="h-4 w-4 mr-2" />
+                  Convert All
+                </Button>
+                
+                {selectedFileId && (!allComplete || isDirty) && (
                   <Button
                     onClick={() => onStartConversion(selectedFileId)}
-                    variant="default"
-                    className="w-full font-semibold shadow-sm"
+                    variant="ghost"
+                    className="w-full text-xs text-muted-foreground hover:text-foreground uppercase tracking-widest"
                   >
-                    <Play className="h-4 w-4 mr-2" />
-                    Update Current
-                    {selectedFilePages > 0 && (
-                      <span className="ml-1 text-primary-foreground/90 font-normal">
-                        ({selectedFilePages} page{selectedFilePages !== 1 && "s"})
-                      </span>
-                    )}
+                    <Play className="h-3 w-3 mr-1.5" />
+                    Convert Current Only
                   </Button>
-                )
-              ) : (
-                <Button
-                  onClick={() => onStartConversion(selectedFileId)}
-                  variant="default"
-                  className="w-full font-semibold shadow-sm"
-                >
-                  <Play className="h-4 w-4 mr-2" />
-                  Convert Current
-                  {selectedFilePages > 0 && (
-                    <span className="ml-1 text-primary-foreground/90 font-normal">
-                      ({selectedFilePages} page{selectedFilePages !== 1 && "s"})
-                    </span>
-                  )}
-                </Button>
-              )
+                )}
+              </>
             )}
             
-            {files.length > 1 && selectedFileId && selectedFile?.status === "complete" && (
-              <Button onClick={() => onDownloadAll(selectedFileId)} variant="outline" className="w-full">
-                <Archive className="h-4 w-4 mr-2" />
-                Download Current as ZIP
+            {(files.length === 1 && files[0].status === "complete") && (
+              <Button onClick={() => onDownloadAll()} variant="outline" className="w-full border-muted text-foreground hover:bg-accent/50 uppercase tracking-widest text-xs h-9">
+                <Archive className="h-3.5 w-3.5 mr-2" />
+                Download All as ZIP
+              </Button>
+            )}
+
+            {(files.length > 1 && allComplete) && (
+              <Button onClick={() => onDownloadAll()} variant="outline" className="w-full border-muted text-foreground hover:bg-accent/50 uppercase tracking-widest text-xs h-9">
+                <Archive className="h-3.5 w-3.5 mr-2" />
+                Download All as ZIP
               </Button>
             )}
           </>
@@ -176,16 +243,16 @@ export function ConversionControls({
           <Button
             onClick={onStopConversion}
             variant="destructive"
-            className="w-full"
+            className="w-full uppercase tracking-widest font-bold"
           >
             <Square className="h-4 w-4 mr-2" />
-            Stop Conversion
+            Stop Engine
           </Button>
         )}
 
         {!isProcessing && hasErrors && (
           <p className="text-xs text-destructive text-center">
-            Some pages failed to convert. Check the preview for details.
+            Some pages failed to process. Check preview.
           </p>
         )}
       </div>
@@ -193,13 +260,13 @@ export function ConversionControls({
       {isProcessing && (
         <div className="flex items-center justify-center gap-2 py-2">
           <Loader2 className="h-4 w-4 animate-spin text-primary" />
-          <span className="text-sm text-muted-foreground">
-            Rendering with Ghostscript...
+          <span className="text-sm text-primary/80 font-mono">
+            {SPEED_MESSAGES[messageIndex]}
           </span>
         </div>
       )}
 
-
     </div>
   )
 }
+

@@ -110,9 +110,9 @@ export function SettingsPanel({
 
   return (
     <div className={cn("space-y-4", disabled && "opacity-50 pointer-events-none")}>
-      <Accordion type="multiple" defaultValue={["export-scope", "color", "rendering", "geometry"]} className="space-y-2">
-        <AccordionItem value="export-scope" className="border border-border rounded-lg px-4 bg-primary/[0.02]">
-          <AccordionTrigger className="text-sm font-semibold hover:no-underline text-primary flex items-center gap-2">
+      <Accordion type="multiple" defaultValue={["export-scope", "color", "rendering", "geometry"]} className="space-y-4">
+        <AccordionItem value="export-scope" className="border border-border/20 rounded-xl px-5 bg-card/60 backdrop-blur-md transition-all duration-300 hover:border-primary/50 data-[state=open]:border-primary data-[state=open]:glow-border overflow-hidden">
+          <AccordionTrigger className="text-xs font-bold tracking-widest uppercase hover:no-underline text-primary flex items-center gap-2 py-4 glow-text">
             Export Scope & Options
           </AccordionTrigger>
           <AccordionContent className="space-y-1 pb-4">
@@ -150,7 +150,7 @@ export function SettingsPanel({
                     value={settings.customRange}
                     onChange={(e) => updateSetting("customRange", e.target.value)}
                     placeholder="e.g. 1-3, 5, 8-10"
-                    className="w-full text-sm px-3 py-2 bg-background border border-input rounded-md focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                    className="w-full text-sm px-4 py-2 bg-background/50 border border-border rounded-lg focus-visible:outline-none focus-visible:border-primary focus-visible:ring-1 focus-visible:ring-primary/50 transition-all placeholder:text-muted-foreground/50"
                   />
                   <p className="text-[10px] text-muted-foreground">
                     Valid format: single numbers or hyphen ranges, separated by commas.
@@ -164,17 +164,17 @@ export function SettingsPanel({
               label="Output Format"
               tooltip="JPG: Standard format for prints. PNG: Lossless quality with transparency support. WebP: High-compression format with transparency support."
             >
-              <div className="grid grid-cols-3 gap-1 p-0.5 bg-muted rounded-lg border border-border">
+              <div className="grid grid-cols-3 gap-1.5 p-1 bg-background/50 rounded-lg border border-border/50">
                 {(["jpg", "png", "webp"] as const).map((format) => (
                   <button
                     key={format}
                     type="button"
                     onClick={() => updateSetting("exportFormat", format)}
                     className={cn(
-                      "py-1 text-xs font-semibold rounded-md transition-all uppercase",
+                      "py-1.5 text-xs font-bold tracking-wider rounded-md transition-all uppercase duration-300",
                       settings.exportFormat === format
-                        ? "bg-background text-primary shadow-sm"
-                        : "text-muted-foreground hover:text-foreground"
+                        ? "bg-primary text-primary-foreground shadow-[0_0_10px_var(--color-primary)]"
+                        : "text-muted-foreground hover:text-foreground hover:bg-card"
                     )}
                   >
                     {format}
@@ -191,7 +191,7 @@ export function SettingsPanel({
               label="Quality Preset"
               tooltip="Low: 150 DPI (screen preview). Standard: 300 DPI (high quality web/print). Max: 600 DPI (professional print-production quality)."
             >
-              <div className="grid grid-cols-4 gap-1 p-0.5 bg-muted rounded-lg border border-border">
+              <div className="grid grid-cols-4 gap-1.5 p-1 bg-background/50 rounded-lg border border-border/50">
                 {([
                   { label: "Low", dpi: 150, quality: 80 },
                   { label: "Standard", dpi: 300, quality: 90 },
@@ -224,10 +224,10 @@ export function SettingsPanel({
                         }
                       }}
                       className={cn(
-                        "py-1 text-xs font-semibold rounded-md transition-all",
+                        "py-1.5 text-[10px] font-bold tracking-wider uppercase rounded-md transition-all duration-300",
                         isActive
-                          ? "bg-background text-primary shadow-sm animate-fade-in"
-                          : "text-muted-foreground hover:text-foreground disabled:opacity-50 disabled:pointer-events-none"
+                          ? "bg-primary text-primary-foreground shadow-[0_0_10px_var(--color-primary)]"
+                          : "text-muted-foreground hover:text-foreground hover:bg-card disabled:opacity-50 disabled:pointer-events-none"
                       )}
                     >
                       {preset.label}
@@ -310,8 +310,8 @@ export function SettingsPanel({
         </AccordionItem>
 
         {sections.includes("color") && (
-        <AccordionItem value="color" className="border border-border rounded-lg px-4">
-          <AccordionTrigger className="text-sm font-medium hover:no-underline">
+        <AccordionItem value="color" className="border border-border/20 rounded-xl px-5 bg-card/60 backdrop-blur-md transition-all duration-300 hover:border-primary/50 data-[state=open]:border-primary data-[state=open]:glow-border overflow-hidden">
+          <AccordionTrigger className="text-xs font-bold tracking-widest uppercase hover:no-underline text-foreground data-[state=open]:text-primary data-[state=open]:glow-text flex items-center gap-2 py-4">
             Color Management
           </AccordionTrigger>
           <AccordionContent className="space-y-1 pb-4">
@@ -403,8 +403,8 @@ export function SettingsPanel({
         )}
 
         {sections.includes("rendering") && (
-        <AccordionItem value="rendering" className="border border-border rounded-lg px-4">
-          <AccordionTrigger className="text-sm font-medium hover:no-underline">
+        <AccordionItem value="rendering" className="border border-border/20 rounded-xl px-5 bg-card/60 backdrop-blur-md transition-all duration-300 hover:border-primary/50 data-[state=open]:border-primary data-[state=open]:glow-border overflow-hidden">
+          <AccordionTrigger className="text-xs font-bold tracking-widest uppercase hover:no-underline text-foreground data-[state=open]:text-primary data-[state=open]:glow-text flex items-center gap-2 py-4">
             Rendering Options
           </AccordionTrigger>
           <AccordionContent className="space-y-1 pb-4">
@@ -500,8 +500,8 @@ export function SettingsPanel({
         )}
 
         {sections.includes("geometry") && (
-        <AccordionItem value="geometry" className="border border-border rounded-lg px-4">
-          <AccordionTrigger className="text-sm font-medium hover:no-underline">
+        <AccordionItem value="geometry" className="border border-border/20 rounded-xl px-5 bg-card/60 backdrop-blur-md transition-all duration-300 hover:border-primary/50 data-[state=open]:border-primary data-[state=open]:glow-border overflow-hidden">
+          <AccordionTrigger className="text-xs font-bold tracking-widest uppercase hover:no-underline text-foreground data-[state=open]:text-primary data-[state=open]:glow-text flex items-center gap-2 py-4">
             Page Geometry
           </AccordionTrigger>
           <AccordionContent className="space-y-1 pb-4">

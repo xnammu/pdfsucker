@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useEffect, useRef } from "react"
 import JSZip from "jszip"
-import { FileType2, Settings2, Layers, Download, Play, Square, RefreshCw, Trash2 } from "lucide-react"
+import { FileType2, Settings2, Layers, Download, Play, Square, RefreshCw, Trash2, Zap, Cpu, Shield, Lock, CheckCircle2 } from "lucide-react"
 import { FileUpload } from "@/components/file-upload"
 import { SettingsPanel } from "@/components/settings-panel"
 import { PagePreview } from "@/components/page-preview"
@@ -36,6 +36,8 @@ export default function PDFConverter() {
   const [selectedFileId, setSelectedFileId] = useState<string | null>(null)
   const [selectedPageNumber, setSelectedPageNumber] = useState(1)
   const [activeTab, setActiveTab] = useState("upload")
+  const [zipProgress, setZipProgress] = useState<{ active: boolean; current: number; total: number; message: string; ready: boolean; size?: string; downloadUrl?: string; zipName?: string; } | null>(null)
+  const [showKeyboardShortcuts, setShowKeyboardShortcuts] = useState(false)
   const isCancelledRef = useRef(false)
   const activeFileIdsRef = useRef<Set<string>>(new Set())
 
@@ -636,9 +638,13 @@ export default function PDFConverter() {
       } catch (error) {
         console.error("Failed to save ZIP natively:", error)
         alert(`Failed to save ZIP: ${error}`)
+      } finally {
+        setZipProgress(null)
       }
       return
     }
+
+    setZipProgress({ active: true, current: 0, total: allCompletedPages.length, message: "Preparing ZIP...", ready: false })
 
     const zip = new JSZip()
     for (const file of filesToDownload) {
@@ -657,23 +663,38 @@ export default function PDFConverter() {
           targetZip.file(`page-${displayNum.toString().padStart(3, "0")}.${ext}`, base64Data, {
             base64: true,
           })
+
+          processed++
+          if (processed % 5 === 0) {
+            setZipProgress(p => p ? { ...p, current: processed, message: `Compressing ${processed} of ${allCompletedPages.length} pages` } : null)
+            await new Promise(r => setTimeout(r, 0))
+          }
         }
       }
     }
 
-    const blob = await zip.generateAsync({ type: "blob" })
-    const link = document.createElement("a")
+    setZipProgress(p => p ? { ...p, current: processed, message: "Building archive..." } : null)
+
+    const blob = await zip.generateAsync({ type: "blob" }, (meta) => {
+      setZipProgress(p => p ? { ...p, message: `Writing files... ${Math.round(meta.percent)}%` } : null)
+    })
+
+    const sizeInMB = (blob.size / (1024 * 1024)).toFixed(1) + " MB"
     const downloadUrl = URL.createObjectURL(blob)
-    link.href = downloadUrl
-    link.download = filesToDownload.length === 1
+    const zipName = filesToDownload.length === 1
       ? `${filesToDownload[0].name.replace(/\.pdf$/i, "")}.zip`
       : "converted-files.zip"
-    link.click()
 
-    // Safe timeout to prevent browser race conditions revoking the URL before the download starts
-    setTimeout(() => {
-      URL.revokeObjectURL(downloadUrl)
-    }, 1000)
+    setZipProgress({
+      active: true,
+      current: allCompletedPages.length,
+      total: allCompletedPages.length,
+      message: "ZIP Ready",
+      ready: true,
+      size: sizeInMB,
+      downloadUrl,
+      zipName
+    })
   }, [files, handleDownloadSingle])
 
   const handleReset = useCallback(() => {
@@ -759,175 +780,124 @@ export default function PDFConverter() {
 
   const selectedFile = files.find((f) => f.id === selectedFileId)
 
+  // Keyboard Shortcuts Hook Logic
+  useEffect(() => {
+    const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      if (
+        document.activeElement?.tagName === "INPUT" ||
+        document.activeElement?.tagName === "TEXTAREA" ||
+        document.activeElement?.getAttribute("contenteditable") === "true"
+      ) {
+        return
+      }
+
+      if (e.ctrlKey && e.key.toLowerCase() === 'k') {
+        e.preventDefault()
+        setShowKeyboardShortcuts(prev => !prev)
+        return
+      }
+
+      if (!selectedFileId) return
+
+      if (e.key.toLowerCase() === 'e') {
+        e.preventDefault()
+        handleDownloadAll(selectedFileId)
+      } else if (e.key.toLowerCase() === 'r') {
+        e.preventDefault()
+        handleMasterTransform(selectedFileId, 'rotateCw')
+      }
+    }
+
+    window.addEventListener("keydown", handleGlobalKeyDown)
+    return () => window.removeEventListener("keydown", handleGlobalKeyDown)
+  }, [selectedFileId, handleDownloadAll, handleMasterTransform])
+
   return (
-    <div className="flex flex-col h-screen bg-background overflow-hidden">
-      {/* Header */}
-      <header className="flex items-center justify-between px-6 py-4 border-b border-border bg-card">
-        <div className="flex items-center gap-3">
-          <div className="p-2 rounded-lg bg-primary/10">
-            <FileType2 className="h-6 w-6 text-primary" />
-          </div>
-          <div>
-            <h1 className="text-lg font-semibold text-foreground">
-              PDF Sucker
-            </h1>
-            <p className="text-xs text-muted-foreground">
-              High-quality conversion • Configurable DPI • Batch processing
-            </p>
+    <div className="flex flex-col h-screen bg-background text-foreground overflow-hidden bg-ambient relative">
+      <div className="noise-overlay"></div>
+      <div className="vignette"></div>
+
+      {/* Keyboard Shortcuts Overlay */}
+      {showKeyboardShortcuts && (
+        <div className="absolute inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm" onClick={() => setShowKeyboardShortcuts(false)}>
+          <div className="bg-card border border-border p-6 rounded-xl shadow-2xl max-w-sm w-full animate-in fade-in zoom-in duration-200" onClick={e => e.stopPropagation()}>
+            <h3 className="text-lg font-bold mb-4 flex items-center gap-2"><Zap className="h-5 w-5 text-primary" /> Keyboard Shortcuts</h3>
+            <div className="space-y-2">
+              <div className="flex justify-between items-center"><kbd className="bg-muted px-2 py-1 rounded text-xs font-mono">R</kbd> <span className="text-sm text-muted-foreground">Rotate</span></div>
+              <div className="flex justify-between items-center"><kbd className="bg-muted px-2 py-1 rounded text-xs font-mono">E</kbd> <span className="text-sm text-muted-foreground">Export / Download</span></div>
+              <div className="flex justify-between items-center"><kbd className="bg-muted px-2 py-1 rounded text-xs font-mono">F</kbd> <span className="text-sm text-muted-foreground">Fit / Reset Zoom</span></div>
+              <div className="flex justify-between items-center"><kbd className="bg-muted px-2 py-1 rounded text-xs font-mono">+ / -</kbd> <span className="text-sm text-muted-foreground">Zoom In / Out</span></div>
+              <div className="flex justify-between items-center"><kbd className="bg-muted px-2 py-1 rounded text-xs font-mono">Delete</kbd> <span className="text-sm text-muted-foreground">Remove Page</span></div>
+              <div className="flex justify-between items-center"><kbd className="bg-muted px-2 py-1 rounded text-xs font-mono">Arrows</kbd> <span className="text-sm text-muted-foreground">Navigate Pages</span></div>
+              <div className="flex justify-between items-center"><kbd className="bg-muted px-2 py-1 rounded text-xs font-mono">Ctrl+K</kbd> <span className="text-sm text-muted-foreground">Toggle Shortcuts</span></div>
+            </div>
+            <Button className="w-full mt-6" onClick={() => setShowKeyboardShortcuts(false)}>Close</Button>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          {/* Header Actions: Convert All / Stop / Download ZIP */}
-          {job?.status !== "processing" && files.length > 0 && (() => {
-            const remainingFiles = files.filter(f => f.status !== "complete")
-            const hasCompleted = files.some(f => f.status === "complete")
-            const allCompleted = files.every(f => f.status === "complete")
-            const targetFiles = (hasCompleted && remainingFiles.length > 0) ? remainingFiles : files
+      )}
 
-            const anyDirty = targetFiles.some(f => !f.lastConvertedSignature || f.lastConvertedSignature !== getFileSignature(f, f.settings))
-            const showConvertButton = !allCompleted || anyDirty
-            if (!showConvertButton) return null
+      <div className="flex flex-1 min-h-0 relative z-10">
+        {/* Leftmost Nav Sidebar */}
+        <nav className="w-16 flex-shrink-0 bg-sidebar border-r border-border flex flex-col items-center py-6 justify-between z-20">
+          <div className="flex flex-col items-center gap-6 w-full">
+            {/* Logo */}
+            <div className="h-10 w-10 rounded-xl bg-primary/20 text-primary flex items-center justify-center mb-2 glow-border border border-primary/50">
+              <Zap className="h-6 w-6 text-primary" />
+            </div>
 
-            const label = allCompleted
-              ? (files.length === 1 ? "Update Current" : "Update All")
-              : files.length === 1
-                ? "Start Conversion"
-                : (hasCompleted && remainingFiles.length > 0)
-                  ? "Convert Remaining"
-                  : "Convert All"
-
-            const totalTargetPages = targetFiles.reduce((acc, f) => {
-              const activePagesCount = f.pages.filter(p => {
-                if (p.deleted) return false
-
-                const displayNum = getDisplayPageNumber(f, p.pageNumber)
-                const fileSettings = f.settings
-
-                if (fileSettings.exportScope === "selected") {
-                  return p.selected !== false
-                }
-                if (fileSettings.exportScope === "range") {
-                  const activeCount = f.pages.filter(pg => !pg.deleted).length
-                  const parsed = parsePageRange(fileSettings.customRange, activeCount)
-                  return parsed.includes(displayNum)
-                }
-                if (fileSettings.exportScope === "odd") {
-                  return displayNum % 2 !== 0
-                }
-                if (fileSettings.exportScope === "even") {
-                  return displayNum % 2 === 0
-                }
-                return true
-              }).length
-              return acc + activePagesCount
-            }, 0)
-
-            return (
-              <Button
-                onClick={() => handleStartConversion()}
-                disabled={totalTargetPages === 0}
-                size="sm"
-                className="gap-2"
-              >
-                <Play className="h-4 w-4" />
-                {label}
-                <span className="opacity-90 font-normal text-xs">
-                  ({totalTargetPages} page{totalTargetPages !== 1 && "s"})
-                </span>
-              </Button>
-            )
-          })()}
-
-          {job?.status === "processing" && (
-            <Button
-              onClick={handleStopConversion}
-              variant="destructive"
-              size="sm"
-              className="gap-2"
+            {/* Nav Items */}
+            <button
+              onClick={() => setActiveTab("upload")}
+              className={`w-full py-4 flex flex-col items-center gap-1.5 transition-all ${activeTab === 'upload' ? 'text-primary border-r-2 border-primary bg-primary/10 glow-text' : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'}`}
             >
-              <Square className="h-4 w-4" />
-              Stop Conversion
-            </Button>
-          )}
+              <Layers className="h-5 w-5" />
+              <span className="text-[10px] font-medium">Files</span>
+            </button>
+            <button
+              onClick={() => setActiveTab("info")}
+              className={`w-full py-4 flex flex-col items-center gap-1.5 transition-all ${activeTab === 'info' ? 'text-primary border-r-2 border-primary bg-primary/10 glow-text' : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'}`}
+            >
+              <FileType2 className="h-5 w-5" />
+              <span className="text-[10px] font-medium">Info</span>
+            </button>
+            <button
+              onClick={() => setActiveTab("history")}
+              className={`w-full py-4 flex flex-col items-center gap-1.5 transition-all ${activeTab === 'history' ? 'text-primary border-r-2 border-primary bg-primary/10 glow-text' : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'}`}
+            >
+              <RefreshCw className="h-5 w-5" />
+              <span className="text-[10px] font-medium">History</span>
+            </button>
+          </div>
 
-          {job?.status !== "processing" && files.some(f => f.status === "complete") && (
-            <>
-              {files.filter(f => f.status === "complete").length > 1 ? (
-                <>
-                  <Button
-                    onClick={() => handleDownloadAll()}
-                    size="sm"
-                    className="gap-2"
-                  >
-                    <Download className="h-4 w-4" />
-                    {window.__TAURI_INTERNALS__ ? "Save All ZIP" : "Download All ZIP"} ({files.filter(f => f.status === "complete").length} files)
-                  </Button>
-                  {window.__TAURI_INTERNALS__ && (
-                    <Button
-                      onClick={() => handleSaveToFolder()}
-                      size="sm"
-                      variant="outline"
-                      className="gap-2"
-                    >
-                      <Download className="h-4 w-4" />
-                      Save All to Folder
-                    </Button>
-                  )}
-                </>
-              ) : files.filter(f => f.status === "complete").length === 1 ? (
-                <>
-                  <Button
-                    onClick={() => handleDownloadAll(files.find(f => f.status === "complete")?.id)}
-                    size="sm"
-                    className="gap-2"
-                  >
-                    <Download className="h-4 w-4" />
-                    {window.__TAURI_INTERNALS__ ? "Save ZIP" : "Download ZIP"}
-                  </Button>
-                  {window.__TAURI_INTERNALS__ && (
-                    <Button
-                      onClick={() => handleSaveToFolder(files.find(f => f.status === "complete")?.id)}
-                      size="sm"
-                      variant="outline"
-                      className="gap-2"
-                    >
-                      <Download className="h-4 w-4" />
-                      Save to Folder
-                    </Button>
-                  )}
-                </>
-              ) : null}
+          <div className="flex flex-col items-center gap-4 w-full">
+            <button
+              onClick={() => setActiveTab("settings")}
+              className={`w-full py-4 flex flex-col items-center gap-1.5 transition-all ${activeTab === 'settings' ? 'text-primary border-r-2 border-primary bg-primary/10 glow-text' : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'}`}
+            >
+              <Settings2 className="h-5 w-5" />
+              <span className="text-[10px] font-medium">Settings</span>
+            </button>
+            <div className="h-8 w-8 rounded-full bg-card border border-border flex items-center justify-center mt-2 font-bold text-xs text-foreground">
+              N
+            </div>
+          </div>
+        </nav>
 
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={handleReset}
-                className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10 rounded-full"
-                title="Reset All PDF Conversions"
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
-            </>
-          )}
-        </div>
-      </header>
-
-      {/* Main Content */}
-      <div className="flex flex-1 min-h-0">
         {/* Left Sidebar - Upload & Info */}
-        <aside className="w-80 flex-shrink-0 border-r border-border bg-card flex flex-col overflow-hidden">
+        <aside className="w-80 flex-shrink-0 border-r border-border bg-card/80 flex flex-col overflow-hidden">
           <Tabs value={activeTab === "settings" ? "upload" : activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0">
-            <div className="px-4 pt-4 pb-2 border-b border-border/50">
-              <TabsList className="grid grid-cols-2 w-full p-1 h-auto">
-                <TabsTrigger value="upload" className="text-xs py-2 gap-1.5">
-                  <Layers className="h-3.5 w-3.5" />
-                  Files
-                </TabsTrigger>
-                <TabsTrigger value="info" className="text-xs py-2 gap-1.5">
-                  <FileType2 className="h-3.5 w-3.5" />
-                  Info
-                </TabsTrigger>
+            <div className="px-6 pt-6 pb-2 border-b border-border/20">
+              <TabsList className="hidden">
+                <TabsTrigger value="upload">Files</TabsTrigger>
+                <TabsTrigger value="info">Info</TabsTrigger>
+                <TabsTrigger value="history">History</TabsTrigger>
+                <TabsTrigger value="settings">Settings</TabsTrigger>
               </TabsList>
+              <div className="flex items-center justify-between mb-2">
+                <h2 className="text-sm font-semibold tracking-wide text-primary glow-text uppercase">{
+                  activeTab === 'upload' ? 'Files' : activeTab === 'info' ? 'Info' : activeTab === 'history' ? 'History' : 'Settings'
+                }</h2>
+              </div>
             </div>
 
             <ScrollArea className="flex-1 min-h-0">
@@ -942,13 +912,40 @@ export default function PDFConverter() {
                 />
               </TabsContent>
 
-              <TabsContent value="info" className="m-0 p-4">
-                <MetadataDisplay
-                  metadata={selectedFile?.metadata}
-                  fileName={selectedFile?.name || ""}
-                  fileSize={selectedFile?.size}
-                  pageCount={selectedFile?.pageCount}
-                />
+              <TabsContent value="info" className="flex-1 mt-0 m-0 p-6 overflow-y-auto">
+                <div className="space-y-6">
+                  <div>
+                    <h2 className="text-xl font-bold text-foreground">PDF Sucker</h2>
+                    <p className="text-sm text-muted-foreground mt-1">The fastest local document processing engine for creators, designers, print shops, publishers, and professionals.</p>
+                  </div>
+
+                  <div className="p-4 rounded-xl bg-primary/5 border border-primary/20">
+                    <h3 className="text-sm font-semibold text-primary mb-2 flex items-center gap-2">
+                      <Shield className="h-4 w-4" /> Local & Secure
+                    </h3>
+                    <p className="text-xs text-muted-foreground leading-relaxed">
+                      All processing happens entirely in your browser using WebAssembly. Your files are never uploaded to any server, ensuring 100% privacy and security.
+                    </p>
+                  </div>
+
+                  <div className="p-4 rounded-xl bg-card border border-border">
+                    <h3 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
+                      <Zap className="h-4 w-4 text-primary" /> Feature Roadmap
+                    </h3>
+                    <ul className="text-xs text-muted-foreground space-y-2">
+                      <li className="flex items-center gap-2"><CheckCircle2 className="h-3.5 w-3.5 text-primary" /> PDF → JPG / PNG / WebP</li>
+                      <li className="flex items-center gap-2"><div className="h-1.5 w-1.5 rounded-full bg-accent ml-1 mr-1"></div> Image → PDF</li>
+                      <li className="flex items-center gap-2"><div className="h-1.5 w-1.5 rounded-full bg-accent ml-1 mr-1"></div> Merge & Split PDFs</li>
+                      <li className="flex items-center gap-2"><div className="h-1.5 w-1.5 rounded-full bg-accent ml-1 mr-1"></div> Extract selected pages</li>
+                      <li className="flex items-center gap-2"><div className="h-1.5 w-1.5 rounded-full bg-accent ml-1 mr-1"></div> OCR (offline text extraction)</li>
+                      <li className="flex items-center gap-2"><div className="h-1.5 w-1.5 rounded-full bg-accent ml-1 mr-1"></div> Compress & Optimize PDFs</li>
+                      <li className="flex items-center gap-2"><div className="h-1.5 w-1.5 rounded-full bg-accent ml-1 mr-1"></div> Password Management</li>
+                      <li className="flex items-center gap-2"><div className="h-1.5 w-1.5 rounded-full bg-accent ml-1 mr-1"></div> Watermark & Crop</li>
+                      <li className="flex items-center gap-2"><div className="h-1.5 w-1.5 rounded-full bg-accent ml-1 mr-1"></div> Batch rename & Metadata</li>
+                      <li className="flex items-center gap-2"><div className="h-1.5 w-1.5 rounded-full bg-accent ml-1 mr-1"></div> Color profile conversion</li>
+                    </ul>
+                  </div>
+                </div>
               </TabsContent>
             </ScrollArea>
           </Tabs>
@@ -972,10 +969,10 @@ export default function PDFConverter() {
         </main>
 
         {/* Right Sidebar - Settings & Conversion */}
-        <aside className="w-80 flex-shrink-0 border-l border-border bg-card flex flex-col overflow-hidden min-h-0">
-          <div className="flex items-center px-4 py-3 border-b border-border">
+        <aside className="w-80 flex-shrink-0 border-l border-border bg-card/80 flex flex-col overflow-hidden min-h-0">
+          <div className="flex items-center px-4 py-4 border-b border-border/20">
             <Settings2 className="h-4 w-4 mr-2 text-muted-foreground" />
-            <span className="text-sm font-medium text-foreground">Conversion Settings</span>
+            <span className="text-sm font-semibold text-foreground">Conversion Settings</span>
           </div>
 
           {files.length > 0 && (() => {
@@ -995,16 +992,19 @@ export default function PDFConverter() {
               return true
             }).length : 0
 
-            const isDirty = selectedFile ? (!selectedFile.lastConvertedSignature || selectedFile.lastConvertedSignature !== getFileSignature(selectedFile, selectedFile.settings)) : false
-
             return (
-              <div className="p-4 border-b border-border bg-card/50 z-10">
+              <div className="p-4 border-b border-border/20 bg-card/30 z-10">
                 <ConversionControls
                   files={files}
                   job={job}
                   selectedFileId={selectedFileId}
-                  selectedFilePages={selectedFilePages}
-                  isDirty={isDirty}
+                  selectedFilePages={selectedFile?.pages.filter(p => !p.deleted).length}
+                  isDirty={
+                    selectedFile?.lastConvertedSignature !== undefined &&
+                    selectedFile?.lastConvertedSignature !== getFileSignature(selectedFile, selectedFile.settings)
+                  }
+                  zipProgress={zipProgress}
+                  onClearZipProgress={() => setZipProgress(null)}
                   onStartConversion={handleStartConversion}
                   onStopConversion={handleStopConversion}
                   onDownloadSingle={handleDownloadSingle}
@@ -1030,6 +1030,17 @@ export default function PDFConverter() {
           </div>
         </aside>
       </div>
+
+      {/* Bottom Status Bar */}
+      <footer className="h-10 flex-shrink-0 border-t border-border bg-card/50 flex items-center justify-center gap-8 text-[11px] text-muted-foreground z-20">
+        <div className="flex items-center gap-2"><Zap className="h-3.5 w-3.5 text-primary glow-text" /> Lightning Fast</div>
+        <div className="h-3 w-px bg-border"></div>
+        <div className="flex items-center gap-2"><Layers className="h-3.5 w-3.5 text-primary glow-text" /> Local Processing</div>
+        <div className="h-3 w-px bg-border"></div>
+        <div className="flex items-center gap-2"><Shield className="h-3.5 w-3.5 text-primary glow-text" /> 100% Private</div>
+        <div className="h-3 w-px bg-border"></div>
+        <div className="flex items-center gap-2"><Lock className="h-3.5 w-3.5 text-primary glow-text" /> Secure by Design</div>
+      </footer>
     </div>
   )
 }

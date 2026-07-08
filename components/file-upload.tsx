@@ -137,7 +137,7 @@ export function FileUpload({
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <div
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
@@ -150,10 +150,10 @@ export function FileUpload({
           }
         }}
         className={cn(
-          "relative border-2 border-dashed rounded-lg p-8 transition-all duration-200 cursor-pointer",
+          "relative border-2 border-dashed rounded-xl p-10 transition-all duration-300 cursor-pointer group",
           isDragging
-            ? "border-primary bg-primary/5"
-            : "border-border hover:border-muted-foreground/50",
+            ? "border-primary bg-primary/10 glow-border"
+            : "border-border hover:border-primary/50 hover:bg-primary/5",
           disabled && "opacity-50 cursor-not-allowed"
         )}
       >
@@ -166,46 +166,48 @@ export function FileUpload({
           disabled={disabled}
           className="hidden"
         />
-        <div className="flex flex-col items-center justify-center gap-3 text-center">
+        <div className="flex flex-col items-center justify-center gap-4 text-center">
           <div
             className={cn(
-              "p-4 rounded-full transition-colors",
-              isDragging ? "bg-primary/10" : "bg-secondary"
+              "p-4 rounded-2xl transition-all duration-300",
+              isDragging ? "bg-primary/20 scale-110" : "bg-primary/10 group-hover:scale-110 group-hover:bg-primary/20"
             )}
           >
             <Upload
-              className={cn(
-                "h-8 w-8 transition-colors",
-                isDragging ? "text-primary" : "text-muted-foreground"
-              )}
+              className="h-10 w-10 text-primary glow-text transition-colors"
             />
           </div>
           <div>
-            <p className="text-lg font-medium text-foreground">
+            <p className="text-sm font-semibold text-foreground tracking-wide">
               Drop PDF files here
             </p>
-            <p className="text-sm text-muted-foreground mt-1">
-              or click to browse • Supports multi-page documents
+            <p className="text-[11px] text-muted-foreground mt-1.5">
+              or click to browse
+            </p>
+            <p className="text-[10px] text-muted-foreground/60 mt-1">
+              Supports multi-page documents
             </p>
           </div>
         </div>
       </div>
 
       {files.length > 0 && (
-        <div className="space-y-2">
+        <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <h3 className="text-sm font-medium text-foreground">
+            <h3 className="text-xs font-semibold text-foreground uppercase tracking-wider">
               Uploaded Files ({files.length})
             </h3>
           </div>
-          <div className="space-y-2 max-h-[52vh] overflow-y-auto pr-2 border border-border/50 bg-secondary/20 rounded-lg p-2">
+          <div className="space-y-3 max-h-[45vh] overflow-y-auto pr-2">
             {files.map((file) => (
               <div
                 key={file.id}
                 onClick={() => onSelectFile?.(file.id)}
                 className={cn(
-                  "flex items-center gap-3 p-3 rounded-lg group cursor-pointer transition-colors w-full",
-                  selectedFileId === file.id ? "bg-primary/10 ring-1 ring-primary" : "bg-secondary hover:bg-secondary/80"
+                  "flex items-center gap-4 p-4 rounded-xl group cursor-pointer transition-all w-full border",
+                  selectedFileId === file.id 
+                    ? "bg-primary/10 border-primary glow-border" 
+                    : "bg-card/50 border-border hover:border-primary/30 hover:bg-card"
                 )}
               >
                 <div className="flex-shrink-0">{getStatusIcon(file.status)}</div>
