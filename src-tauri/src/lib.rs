@@ -10,7 +10,13 @@ pub struct SaveFileMapping {
 
 fn find_ghostscript() -> std::path::PathBuf {
     // 1. Try resolving from PATH first
-    if let Ok(_output) = Command::new("gswin64c").arg("-version").output() {
+    let mut version_cmd = Command::new("gswin64c");
+    #[cfg(target_os = "windows")]
+    {
+        use std::os::windows::process::CommandExt;
+        version_cmd.creation_flags(0x08000000);
+    }
+    if let Ok(_output) = version_cmd.arg("-version").output() {
         return std::path::PathBuf::from("gswin64c");
     }
 
@@ -74,6 +80,11 @@ async fn convert_pdf_native(
     let output_pattern = output_dir.join(format!("page-%03d.{}", ext));
     
     let mut gs_cmd = Command::new(find_ghostscript());
+    #[cfg(target_os = "windows")]
+    {
+        use std::os::windows::process::CommandExt;
+        gs_cmd.creation_flags(0x08000000); // CREATE_NO_WINDOW
+    }
     gs_cmd.args(["-dNOPAUSE", "-dBATCH", "-dSAFER"])
         .arg(format!("-sDEVICE={}", device))
         .arg(format!("-r{}", dpi));
