@@ -215,14 +215,14 @@ export function ConversionControls({
                   Convert All
                 </Button>
                 
-                {selectedFileId && (!allComplete || isDirty) && (
+                {selectedFileId && (selectedFile?.status !== "complete" || isDirty) && (
                   <Button
                     onClick={() => onStartConversion(selectedFileId)}
                     variant="ghost"
                     className="w-full text-xs text-muted-foreground hover:text-foreground uppercase tracking-widest"
                   >
                     <Play className="h-3 w-3 mr-1.5" />
-                    Convert Current
+                    {selectedFile?.status === "complete" && isDirty ? "Update Current" : "Convert Current"}
                   </Button>
                 )}
               </>
@@ -235,13 +235,15 @@ export function ConversionControls({
               </Button>
             )}
 
-            {(files.length > 1 && allComplete) && (
+            {files.length > 1 && (
               <>
-                <Button onClick={() => onDownloadAll()} variant="outline" className="w-full border-muted text-foreground hover:bg-accent/50 uppercase tracking-widest text-xs h-9">
-                  <Archive className="h-3.5 w-3.5 mr-2" />
-                  Download All as ZIP (E)
-                </Button>
-                {selectedFileId && (
+                {allComplete && (
+                  <Button onClick={() => onDownloadAll()} variant="outline" className="w-full border-muted text-foreground hover:bg-accent/50 uppercase tracking-widest text-xs h-9">
+                    <Archive className="h-3.5 w-3.5 mr-2" />
+                    Download All as ZIP (E)
+                  </Button>
+                )}
+                {selectedFileId && selectedFile?.status === "complete" && (
                   <Button onClick={() => onDownloadAll(selectedFileId)} variant="ghost" className="w-full text-muted-foreground hover:text-foreground uppercase tracking-widest text-xs h-9">
                     <Archive className="h-3.5 w-3.5 mr-2" />
                     Download Current as ZIP

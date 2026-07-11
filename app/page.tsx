@@ -15,6 +15,7 @@ import type { PDFFile, ConversionSettings, ConversionJob } from "@/lib/types"
 import { DEFAULT_SETTINGS } from "@/lib/types"
 import { analyzePDF, convertAllPages } from "@/lib/pdf-processor"
 import { parsePageRange, dataUrlToBlob } from "@/lib/utils"
+import Image from "next/image"
 
 const getDisplayPageNumber = (file: { pages: { pageNumber: number; deleted?: boolean }[] }, pageNumber: number): number => {
   const activePages = file.pages.filter(p => !p.deleted)
@@ -570,13 +571,13 @@ export default function PDFConverter() {
     for (const file of filesToDownload) {
       const safeFolderName = file.name.replace(/\.pdf$/i, "").replace(/[^a-z0-9\-_]/gi, '_')
       const useFolder = filesToDownload.length > 1;
-      
+
       for (const page of file.pages) {
         if (page.deleted || !page.localPath) continue
         const displayNum = getDisplayPageNumber(file, page.pageNumber)
         const ext = page.localPath.split('.').pop() || 'jpg'
         const fileName = `page-${displayNum.toString().padStart(3, "0")}.${ext}`
-        
+
         const target = useFolder ? `${safeFolderName}/${fileName}` : fileName
         mappings.push({ source: page.localPath, target })
       }
@@ -625,13 +626,13 @@ export default function PDFConverter() {
     for (const file of filesToDownload) {
       const safeFolderName = file.name.replace(/\.pdf$/i, "").replace(/[^a-z0-9\-_]/gi, '_')
       const useFolder = filesToDownload.length > 1;
-      
+
       for (const page of file.pages) {
         if (page.deleted || !page.localPath) continue
         const displayNum = getDisplayPageNumber(file, page.pageNumber)
         const ext = page.localPath.split('.').pop() || 'jpg'
         const fileName = `page-${displayNum.toString().padStart(3, "0")}.${ext}`
-        
+
         const target = useFolder ? `${safeFolderName}/${fileName}` : fileName
         mappings.push({ source: page.localPath, target })
       }
@@ -866,8 +867,8 @@ export default function PDFConverter() {
         <nav className="w-16 flex-shrink-0 bg-sidebar border-r border-border flex flex-col items-center py-6 justify-between z-20">
           <div className="flex flex-col items-center gap-6 w-full">
             {/* Logo */}
-            <div className="h-10 w-10 rounded-xl bg-primary/20 text-primary flex items-center justify-center mb-2 glow-border border border-primary/50">
-              <Zap className="h-6 w-6 text-primary" />
+            <div className="h-10 w-10 rounded-lg bg-primary/20 text-primary flex items-center justify-center mb-2 glow-border border border-primary/50">
+              <Image src="/logo.png" alt="Logo" width={40} height={40} />
             </div>
 
             {/* Nav Items */}
@@ -910,7 +911,7 @@ export default function PDFConverter() {
 
         {/* Left Sidebar - Upload & Info */}
         <aside className="w-80 flex-shrink-0 border-r border-border bg-card/80 flex flex-col overflow-hidden">
-          <Tabs value={activeTab === "settings" ? "upload" : activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0">
             <div className="px-6 pt-6 pb-2 border-b border-border/20">
               <TabsList className="hidden">
                 <TabsTrigger value="upload">Files</TabsTrigger>
@@ -939,37 +940,80 @@ export default function PDFConverter() {
               </TabsContent>
 
               <TabsContent value="info" className="flex-1 mt-0 m-0 p-6 overflow-y-auto">
+                {selectedFile ? (
+                  <MetadataDisplay
+                    metadata={selectedFile.metadata}
+                    fileName={selectedFile.name}
+                    fileSize={selectedFile.size}
+                    pageCount={selectedFile.pageCount}
+                  />
+                ) : (
+                  <div className="space-y-6">
+                    <div>
+                      <h2 className="text-xl font-bold text-foreground">PDF Sucker</h2>
+                      <p className="text-sm text-muted-foreground mt-1">The fastest local document processing engine for creators, designers, print shops, publishers, and professionals.</p>
+                    </div>
+                    <div className="p-4 rounded-xl bg-primary/5 border border-primary/20">
+                      <h3 className="text-sm font-semibold text-primary mb-2 flex items-center gap-2">
+                        <Shield className="h-4 w-4" /> Local & Secure
+                      </h3>
+                      <p className="text-xs text-muted-foreground leading-relaxed">
+                        All processing happens entirely in your browser using WebAssembly. Your files are never uploaded to any server, ensuring 100% privacy and security.
+                      </p>
+                    </div>
+                    <div className="p-4 rounded-xl bg-card border border-border">
+                      <h3 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
+                        <Zap className="h-4 w-4 text-primary" /> Feature Roadmap
+                      </h3>
+                      <ul className="text-xs text-muted-foreground space-y-2">
+                        <li className="flex items-center gap-2"><CheckCircle2 className="h-3.5 w-3.5 text-primary" /> PDF → JPG / PNG / WebP</li>
+                        <li className="flex items-center gap-2"><div className="h-1.5 w-1.5 rounded-full bg-accent ml-1 mr-1"></div> Image → PDF</li>
+                        <li className="flex items-center gap-2"><div className="h-1.5 w-1.5 rounded-full bg-accent ml-1 mr-1"></div> Merge & Split PDFs</li>
+                      </ul>
+                    </div>
+                  </div>
+                )}
+              </TabsContent>
+
+              <TabsContent value="history" className="flex-1 mt-0 m-0 p-6 overflow-y-auto">
                 <div className="space-y-6">
                   <div>
-                    <h2 className="text-xl font-bold text-foreground">PDF Sucker</h2>
-                    <p className="text-sm text-muted-foreground mt-1">The fastest local document processing engine for creators, designers, print shops, publishers, and professionals.</p>
+                    <h2 className="text-xl font-bold text-foreground">History</h2>
+                    <p className="text-sm text-muted-foreground mt-1">Your recent conversions will appear here.</p>
                   </div>
-
-                  <div className="p-4 rounded-xl bg-primary/5 border border-primary/20">
-                    <h3 className="text-sm font-semibold text-primary mb-2 flex items-center gap-2">
-                      <Shield className="h-4 w-4" /> Local & Secure
-                    </h3>
-                    <p className="text-xs text-muted-foreground leading-relaxed">
-                      All processing happens entirely in your browser using WebAssembly. Your files are never uploaded to any server, ensuring 100% privacy and security.
-                    </p>
+                  <div className="p-4 bg-secondary/30 rounded-lg text-center">
+                    <p className="text-sm text-muted-foreground">No recent history</p>
                   </div>
+                </div>
+              </TabsContent>
 
-                  <div className="p-4 rounded-xl bg-card border border-border">
-                    <h3 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
-                      <Zap className="h-4 w-4 text-primary" /> Feature Roadmap
-                    </h3>
-                    <ul className="text-xs text-muted-foreground space-y-2">
-                      <li className="flex items-center gap-2"><CheckCircle2 className="h-3.5 w-3.5 text-primary" /> PDF → JPG / PNG / WebP</li>
-                      <li className="flex items-center gap-2"><div className="h-1.5 w-1.5 rounded-full bg-accent ml-1 mr-1"></div> Image → PDF</li>
-                      <li className="flex items-center gap-2"><div className="h-1.5 w-1.5 rounded-full bg-accent ml-1 mr-1"></div> Merge & Split PDFs</li>
-                      <li className="flex items-center gap-2"><div className="h-1.5 w-1.5 rounded-full bg-accent ml-1 mr-1"></div> Extract selected pages</li>
-                      <li className="flex items-center gap-2"><div className="h-1.5 w-1.5 rounded-full bg-accent ml-1 mr-1"></div> OCR (offline text extraction)</li>
-                      <li className="flex items-center gap-2"><div className="h-1.5 w-1.5 rounded-full bg-accent ml-1 mr-1"></div> Compress & Optimize PDFs</li>
-                      <li className="flex items-center gap-2"><div className="h-1.5 w-1.5 rounded-full bg-accent ml-1 mr-1"></div> Password Management</li>
-                      <li className="flex items-center gap-2"><div className="h-1.5 w-1.5 rounded-full bg-accent ml-1 mr-1"></div> Watermark & Crop</li>
-                      <li className="flex items-center gap-2"><div className="h-1.5 w-1.5 rounded-full bg-accent ml-1 mr-1"></div> Batch rename & Metadata</li>
-                      <li className="flex items-center gap-2"><div className="h-1.5 w-1.5 rounded-full bg-accent ml-1 mr-1"></div> Color profile conversion</li>
-                    </ul>
+              <TabsContent value="settings" className="flex-1 mt-0 m-0 p-6 overflow-y-auto">
+                <div className="space-y-6">
+                  <div>
+                    <h2 className="text-xl font-bold text-foreground">App Settings</h2>
+                    <p className="text-sm text-muted-foreground mt-1">Global application preferences.</p>
+                  </div>
+                  
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between p-4 rounded-xl bg-card border border-border">
+                      <div>
+                        <h3 className="text-sm font-semibold text-foreground">Theme</h3>
+                        <p className="text-xs text-muted-foreground">Choose your preferred appearance</p>
+                      </div>
+                      <div className="h-8 w-8 rounded-full bg-primary/10 text-primary flex items-center justify-center">
+                        <Zap className="h-4 w-4" />
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center justify-between p-4 rounded-xl bg-card border border-border">
+                      <div>
+                        <h3 className="text-sm font-semibold text-foreground">Hardware Acceleration</h3>
+                        <p className="text-xs text-muted-foreground">Use GPU for processing when available</p>
+                      </div>
+                      <div className="h-8 w-8 rounded-full bg-primary/10 text-primary flex items-center justify-center">
+                        <Cpu className="h-4 w-4" />
+                      </div>
+                    </div>
                   </div>
                 </div>
               </TabsContent>
