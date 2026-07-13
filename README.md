@@ -57,3 +57,10 @@ The compiled executable will be located in the `src-tauri/target/release/` direc
 - **Backend/Desktop:** [Tauri](https://tauri.app/)
 - **PDF Processing:** [PDF.js](https://mozilla.github.io/pdf.js/)
 - **Archiving:** [JSZip](https://stuk.github.io/jszip/)
+
+## Icon 
+
+- **Icon Logo:** [main-logo.png](public/main-logo.png)
+- **Command to generate icon:** npx tauri icon public/main-logo.png
+
+
